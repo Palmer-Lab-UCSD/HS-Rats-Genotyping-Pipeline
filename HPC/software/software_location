@@ -1,0 +1,11 @@
+Java	1.8.0	#/absolute/path
+Fgbio	1.3.0	#/absolute/path/to/jar/file
+BWA	0.7.17	#/absolute/path
+Samtools	1.13	#/absolute/path
+Picard	2.25.7	#/absolute/path/to/jar/file
+Beagle	5.2	#/absolute/path/to/jar/file
+BCFTools	1.13	#/absolute/path
+FastQC	0.11.9	#/absolute/path
+Qualimap	2.2.1	#/absolute/path
+Plink2	2	#/absolute/path
+Plink	1.07	#/absolute/path

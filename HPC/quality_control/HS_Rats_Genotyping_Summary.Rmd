@@ -1,0 +1,927 @@
+---
+title: | 
+        ![](https://secureservercdn.net/198.71.233.106/h9j.d46.myftpupload.com/wp-content/uploads/2019/09/palmerlab-logo.png){#id .class width=40% height=40%}  
+        Genotyping Summary Report  
+author: "Palmer Lab"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    theme: united
+    toc: true
+    toc_float: true
+    number_sections: true
+params:
+  dir_path:
+    value: x
+  code_path:
+    value: x
+  sex_outliers_Sample_ID:
+    value: x
+---
+
+<!-- css to zoom in the plots and display two SNPs Density plots in a row -->
+<style type="text/css">
+.twoCol {width: 100%}
+.twoCol img {max-width: 50%; float: right}
+.twoCol img {max-width: 50%; float: left}
+.floatImg {width: 100%}
+.floatImg img {max-width: 100%; max-height:80%; float: center}
+.zoomDiv {
+  opacity: 0;
+  position:fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  box-shadow: 0px 0px 50px #888888;
+  max-height:100%; 
+  overflow: scroll
+}
+.zoomImg {width: 100%}
+</style>
+
+<!-- javascript to zoom in the plots when click on the plots -->
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('.floatImg').prepend("<div class=\"zoomDiv\"><img src=\"\" class=\"zoomImg\"></div>");
+    // onClick function for all plots (img's)
+    $('img:not(.zoomImg)').click(function() {
+      $('.zoomImg').attr('src', $(this).attr('src'));
+      $('.zoomDiv').css({opacity: '1', width: '80%'});
+    });
+    // onClick function for zoomImg
+    $('img.zoomImg').click(function() {
+      $('.zoomDiv').css({opacity: '0', width: '0%'});
+    });
+  });
+</script>
+
+<!-- html container to display the zoomed-in plots -->
+<div class="floatImg">
+</div>
+
+<!-- RIP to my desktop path to the folder -->
+
+<!-- main report starts here -->
+```{r basics, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(data.table)
+library(dplyr)
+library(DT)
+library(crosstalk)
+library(reactable)
+library(downloadthis)
+dir_path <- params$dir_path
+code_path <- params$code_path
+sex_outliers_Sample_ID <- params$sex_outliers_Sample_ID
+pipeline_arguments <- read.table(paste0(code_path, "/", "pipeline_arguments"),
+                                 stringsAsFactors=FALSE, header=FALSE,  strip.white=TRUE)
+ref <- sub("[.].*", "", gsub("^.*/", "", pipeline_arguments$V1[4]))
+software <- read.table(paste0(code_path, "/", "software/software_location"), sep="\t",
+                                 stringsAsFactors=FALSE, header=FALSE,  strip.white=TRUE)
+```
+
+<!-- Section 1 -->
+# Pipeline Overview  
+## Pipeline workflow  
+The pipeine flow chart is shown in figure 1.  
+<center>
+![Figure 1: Pipeline flow chart](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline/master/assets/pipeline_overview.png){#id .class width=80% height=80%}  
+
+</center>
+
+## Resources  
+Github: [https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline)  
+Citation: 
+
+<!-- Section 2 -->
+# Data  
+```{r data, echo=FALSE}
+metadata <- read.table(Sys.glob(file.path(paste0(dir_path, "/" , ref, "/results/genotype_result/"), "*_metadata.csv")), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE, sep=",")
+metadata <- metadata[metadata$strain == "Heterogenous stock",]
+```
+
+## Sequence Data  
+Sample strain: `r unique(metadata$strain)`  
+Number of samples: `r length(metadata$Sample_ID)`  
+Flow cell run ID(s): `r unique(metadata$runid)`  
+Riptide library preparation: `r unique(metadata$Library_ID)`  
+Projects: `r unique(metadata$Sample_Project)`  
+
+```{r seuquence_data_summary, echo=FALSE, message=FALSE, warning=FALSE}
+data_summary <- metadata %>% group_by(runid, Library_ID, Sample_Project) %>% summarise(Num_Sample=n_distinct(Sample_ID))
+data_summary %>%
+  download_this(
+    output_name = "seuquence_data_summary",
+    output_extension = ".csv",
+    button_label = "Download table as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+data_summary <- SharedData$new(data_summary)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Library Prep", "Library Prep", data_summary, ~Library_ID),
+    filter_select("Flow Cell", "Flow Cell", data_summary, ~runid),
+    filter_select("Project Name", "Project Name", data_summary, ~Sample_Project)
+  ),
+  reactable(data_summary, 
+    defaultSortOrder = "desc",
+    columns=list(
+      runid=colDef(name="Run ID", defaultSortOrder = "desc", footer = "Total Samples"),
+      Library_ID=colDef(name="Library ID"),
+      Sample_Project=colDef(name="Sample Project"),
+      Num_Sample=colDef(name="Number of Samples", footer = function(values) sprintf("%d", sum(values)))
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+    defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
+  )
+)
+```
+
+## Reference Data  
+Reference genome for alignment: `r gsub("^.*/", "", pipeline_arguments$V1[4])`  
+STITCH variant calling reference panel: `r gsub("^.*/", "", pipeline_arguments$V1[5])`  
+BEAGLE imputation genetic map: `r gsub("^.*/", "", pipeline_arguments$V1[6])`  
+
+
+<!-- Section 3 -->
+# Demultiplex Results  
+Basic statistics of demultiplexing with Fgbio.  
+
+## Number of reads for each sample  
+Number of reads for each sample after demultiplexing with Fgbio.  
+This is extracted from the SampleBarcodeMetric of Fgbio DemuxFastqs function.  
+<center>
+![Figure 2: Number of reads for each sample after demultiplexing](`r paste0(dir_path, "/" , ref,"/results/genotype_result/after_demux_demux_reads.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+```{r demultiplex_reads_table, echo=FALSE, message=FALSE, warning=FALSE}
+demultiplex_reads <- read.table(Sys.glob(file.path(paste0(dir_path, "/" , ref, "/results/genotype_result/"), "*_demux_barcode_metrics")), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE, sep="\t")
+demultiplex_reads <- subset(demultiplex_reads, select = c("barcode_name", "library_name", "templates"))
+demultiplex_reads %>%
+  download_this(
+    output_name = "demultiplex_reads_table",
+    output_extension = ".csv",
+    button_label = "Download table as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+reactable(demultiplex_reads, 
+  defaultSortOrder = "desc",
+  columns=list(
+    barcode_name=colDef(name="Sample Name", defaultSortOrder = "desc"),
+    library_name=colDef(name="Library ID"),
+    templates=colDef(name="Number of Reads after Demultiplex")
+  ),
+  highlight = TRUE,
+  striped = TRUE,
+  defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
+)
+```
+
+
+<!-- Section 4 -->
+# Alignment Results  
+Basic statistics of alignment with BWA mem and Picard MarkDuplicates.  
+
+## Number of mapped reads for each sample  
+Number of mapped reads for each sample after marking duplicates.  
+This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.  
+<center>
+![Figure 3: Number of mapped reads for each sample](`r paste0(dir_path, "/" , ref,"/results/genotype_result/after_mkDup_mapped_reads.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## QC for mapped reads
+```{r QC_mapped_reads_threshold_1M, echo=FALSE, message=FALSE, warning=FALSE}
+QC_mapped_reads_threshold_1M <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_mapped_reads_threshold_1M.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+```
+Quality control based on the number of mapped reads for each sample.  
+Threshold:  
+
+* Number of mapped reads < 1 million: fail (`r length(QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads == "fail", ]$Sample_ID)` sample(s))  
+* Number of mapped reads >= 1 million: pass (`r length(QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads == "pass", ]$Sample_ID)` sample(s))  
+
+The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
+```{r QC_mapped_reads_threshold_1M_display, echo=FALSE, message=FALSE, warning=FALSE}
+QC_mapped_reads_threshold_1M <- merge(QC_mapped_reads_threshold_1M, metadata, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+QC_mapped_reads_threshold_1M <- QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads != "pass", ]
+row.names(QC_mapped_reads_threshold_1M) <- NULL
+QC_mapped_reads_threshold_1M <- subset(QC_mapped_reads_threshold_1M, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor","Mapped_reads", "QC_mapped_reads"))
+QC_mapped_reads_threshold_1M$Sample_ID <- as.character(QC_mapped_reads_threshold_1M$Sample_ID)
+QC_mapped_reads_threshold_1M %>% 
+  download_this(
+    output_name = "QC_mapped_reads_threshold_1M",
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+QC_mapped_reads_threshold_1M <- SharedData$new(QC_mapped_reads_threshold_1M)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Sex", "Sex", QC_mapped_reads_threshold_1M, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", QC_mapped_reads_threshold_1M, ~coatcolor),
+    filter_checkbox("Library Prep", "Library Prep", QC_mapped_reads_threshold_1M, ~Library_ID),
+    filter_slider("Mapped Read Pairs (million)", "Mapped Read Pairs (million)", QC_mapped_reads_threshold_1M, ~Mapped_reads, width = "100%"),
+    filter_select("Flow Cell", "Flow Cell", QC_mapped_reads_threshold_1M, ~runid),
+    filter_select("Project Name", "Project Name", QC_mapped_reads_threshold_1M, ~Sample_Project)
+  ),
+  reactable(QC_mapped_reads_threshold_1M, 
+    defaultSortOrder = "desc",
+    columns=list(
+      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+        style = sticky_style, headerStyle = sticky_style),
+      runid=colDef(name="Flow Cell"),
+      Sample_Project=colDef(name="Project Name"),
+      Library_ID=colDef(name="Library Prep"),
+      sex=colDef(name="Sex"),
+      coatcolor=colDef(name="Coat Color"),
+      Mapped_reads=colDef(name="Mapped Read Pairs (million)"),
+      QC_mapped_reads=colDef(name="QC Reads")
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+  )
+)
+```
+
+## Ratio of unmapped reads for each sample  
+Ratio of unmapped reads over all reads for each sample after marking duplicates.  
+This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.  
+<center>
+![Figure 4: Ratio of unmapped reads for each sample](`r paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_unmapped_rate.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## Ratio of duplicated reads for each sample  
+Ratio of duplicated reads over all reads for each sample after marking duplicates.  
+This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.  
+<center>
+![Figure 5: Ratio of duplication reads for each sample](`r paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_duplication_rate.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## Number of mapped reads separated by chr  
+Number of mapped reads on each chromosome for each sample after marking duplicates.  
+This is extracted from the aligned BAM files with Samtools idxstats.  
+<center>
+![Figure 6: Number of mapped reads for each chromosome (separated by chr)](`r paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_mapped_reads_per_chr.png")`){#id .class width=100% height=100%}  
+
+</center>
+
+## Ratio of mapped reads separated by chr  
+Ratio of mapped reads on each chromosome over all reads for each sample after marking duplicates.  
+This is extracted from the aligned BAM files with Samtools idxstats.  
+<center>
+![Figure 7: Ratio of mapped reads for each chromosome (separated by chr)](`r paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_percent_mapped_per_chr.png")`){#id .class width=100% height=100%}  
+
+</center>
+
+## Ratio of mapped reads on chrY vs. chrX  
+Ratio of mapped reads on chromosome X vs Y over all reads for each sample after marking duplicates.  
+This is extracted from the aligned BAM files with Samtools idxstats.  
+This could be used to do quality control based on animal's sex.  
+<center>
+![Figure 8: Ratio of mapped reads for each sample chrY vs. chrX](`r paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_sex.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## QC for sex  
+Quality control on sex based on the clustering on the ratio of mapped reads on chromosome X vs Y over all reads for each sample.  
+Sex statistics in this population:  
+```{r sex_stats, echo=FALSE, eval=TRUE, message=FALSE, include=T, results='asis'}
+for(i in 1:length(unique(metadata$sex))){
+    cat("  \n")
+    cat(paste0("* Number of ", unique(metadata$sex)[i], " samples: ", length(metadata[metadata$sex == unique(metadata$sex)[i],]$sex),"\  "))
+    cat("  \n")
+}
+```
+
+The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
+
+```{r sex_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+if(length(sex_outliers_Sample_ID) == 0){
+  "There's no sample that fails sex QC!"
+}else{
+  sex_outliers <- metadata[metadata$Sample_ID %in% sex_outliers_Sample_ID,]
+  row.names(sex_outliers) <- NULL
+  sex_outliers <- subset(sex_outliers, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "coatcolor", "sex"))
+  sex_outliers$QC_sex <- "fail"
+  sex_outliers$Sample_ID <- as.character(sex_outliers$Sample_ID)
+  sex_outliers %>% 
+    download_this(
+      output_name = "sex_outliers",
+      output_extension = ".csv",
+      button_label = "Download data as csv",
+      button_type = "default",
+      has_icon = TRUE,
+      icon = "fa fa-save"
+    )
+  sex_outliers <- SharedData$new(sex_outliers)
+  sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                      borderRight = "1px solid #eee")
+  bscols(
+    widths = c(2, 10),
+    list(
+      filter_checkbox("Sex", "Sex", sex_outliers, ~sex),
+      filter_checkbox("Coat Color", "Coat Color", sex_outliers, ~coatcolor),
+      filter_checkbox("Library Prep", "Library Prep", sex_outliers, ~Library_ID),
+      filter_select("Flow Cell", "Flow Cell", sex_outliers, ~runid),
+      filter_select("Project Name", "Project Name", sex_outliers, ~Sample_Project)
+    ),
+    reactable(sex_outliers, 
+      defaultSortOrder = "desc",
+      columns=list(
+        Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+          style = sticky_style, headerStyle = sticky_style),
+        runid=colDef(name="Flow Cell"),
+        Library_ID=colDef(name="Library Prep"),
+        Sample_Project=colDef(name="Project Name"),
+        coatcolor=colDef(name="Coat Color"),
+        sex=colDef(name="Sex"),
+        QC_sex=colDef(name="QC Sex")
+      ),
+      highlight = TRUE,
+      striped = TRUE,
+    )
+  )
+}
+```
+
+
+<!-- Section 5 -->
+# MultiQC Summary  
+For more infomation about the demultiplex and alignmnet, please visit the MultiQC links below.  
+```{r multiqc, echo=FALSE, message=FALSE, warning=FALSE}
+summary <- metadata %>% group_by(runid, Library_ID) %>% summarise(Num_Sample=n_distinct(Sample_ID))
+summary$MultiQC <- paste0("[link](https://www.dropbox.com/home/Palmer%20Lab/Denghui%20Chen/hs_rats/", unique(metadata$runid)[1], "/qc/rn6/", summary$Library_ID, "/multiqc?preview=multiqc_report.html", ")")
+colnames(summary) <- c("Run ID", "Library ID", "Number of Samples", "MultiQC Link")
+knitr::kable(summary)
+```
+
+
+<!-- Section 6 -->
+# Genotype Results  
+Basic genotypes statistics after the imputation step.  
+Here we ONLY focus on the BIALLELIC SNPs!  
+
+## STITCH SNPs statistics  
+Number of biallelic SNPs on each chromosome called by STITCH.  
+```{r vatiant_stats, echo=FALSE, message=FALSE, warning=FALSE}
+vatiant_stats <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_number_of_SNPs_per_chr.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+vatiant_stats <- subset(vatiant_stats, select = c("chr", "Number_of_SNPs"))
+vatiant_stats %>% 
+  download_this(
+    output_name = "vatiant_stats_STITCH",
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+reactable(vatiant_stats, 
+  defaultSortOrder = "desc",
+  columns=list(
+    chr=colDef(name="Chromosome", defaultSortOrder = "desc", footer = "Total SNPs"),
+    Number_of_SNPs=colDef(name="Number of SNPs", footer = function(values) sprintf("%d", sum(values)))
+  ),
+  highlight = TRUE,
+  striped = TRUE,
+  defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
+)
+```
+
+## STITCH SNPs density  
+Biallelic SNPs density on each chromosome on SNPs called by STITCH.  
+<div class="twoCol">
+```{r snp_density, echo=FALSE, warning=FALSE}
+images <- c()
+for(i in 1:20){
+    images[i] <- paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_chr", as.character(i), "_SNPs_density_plot.png")
+}
+knitr::include_graphics(images)
+```
+</div>
+<center>
+![Figure 9: STITCH SNPs density plots](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_chrX_SNPs_density_plot.png")`){#id .class width=50% height=50%} 
+
+</center>
+
+## STITCH SNPs INFO_SCORE distribution  
+The distribution of the INFO_SCORE on biallelic SNPs called by STITCH.  
+The INFO_SCORE is an estimated quality measurement of imputation.  
+<center>
+![Figure 10: STITCH info_score histogram](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_SNPs_INFO_histogram.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## STITCH sample missing rate vs. number of mapped reads  
+X axis: number of mapped reads for each sample (extract from DuplicationMetrics of Picard MarkDuplicates)  
+Y axis: sample missing rate on genotypes called by STITCH (extract using plink2)  
+The effects on the sample's called genotypes due to the variation of the number of reads.  
+<center>
+![Figure 11: STITCH Sample missing rate vs. number of mapped reads](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_missing_vs_mapped_reads.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## QC for STITCH sample missing rate  
+```{r missing_rate_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+missing_rate_outliers <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_sample_missing_rate_threshold_10percent.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+```
+Quality control based on the sample missing rate on genotypes called by STITCH.  
+Threshold:
+
+* missing rate <= 0.1: pass (`r length(missing_rate_outliers[missing_rate_outliers$QC_sample_missing_rate == "pass", ]$Sample_ID)` sample(s))  
+* missing rate > 0.1: fail (`r length(missing_rate_outliers[missing_rate_outliers$QC_sample_missing_rate == "fail", ]$Sample_ID)` sample(s))  
+
+The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
+```{r missing_rate_outliers_display, echo=FALSE, message=FALSE, warning=FALSE}
+missing_rate_outliers <- merge(missing_rate_outliers,metadata, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+missing_rate_outliers <- missing_rate_outliers[missing_rate_outliers$QC_sample_missing_rate != "pass", ]
+row.names(missing_rate_outliers) <- NULL
+missing_rate_outliers <- subset(missing_rate_outliers, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor", "Sample_missing_rate", "QC_sample_missing_rate"))
+missing_rate_outliers$Sample_ID <- as.character(missing_rate_outliers$Sample_ID)
+missing_rate_outliers %>% 
+  download_this(
+    output_name = "missing_rate_outliers",
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+missing_rate_outliers <- SharedData$new(missing_rate_outliers)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Sex", "Sex", missing_rate_outliers, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", missing_rate_outliers, ~coatcolor),
+    filter_checkbox("Library Prep", "Library Prep", missing_rate_outliers, ~Library_ID),
+    filter_slider("Missing Rate", "Missing Rate", missing_rate_outliers, ~Sample_missing_rate, width = "100%"),
+    filter_select("Flow Cell", "Flow Cell", missing_rate_outliers, ~runid),
+    filter_select("Project Name", "Project Name", missing_rate_outliers, ~Sample_Project)
+  ),
+  reactable(missing_rate_outliers, 
+    defaultSortOrder = "desc",
+    columns=list(
+      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+        style = sticky_style, headerStyle = sticky_style),
+      runid=colDef(name="Flow Cell"),
+      Sample_Project=colDef(name="Project Name"),
+      Library_ID=colDef(name="Library Prep"),
+      sex=colDef(name="Sex"),
+      coatcolor=colDef(name="Coat Color"),
+      Sample_missing_rate=colDef(name="Sample Missing Rate"),
+      QC_sample_missing_rate=colDef(name="QC Sample Missing Rate")
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+  )
+)
+```
+
+
+## STITCH sample heterozygosity vs. missing rate  
+X axis: sample missing rate on genotypes called by STITCH (extract using plink2)  
+Y axis: sample heterozygosity rate on genotypes called by STITCH (extract using plink2)  
+The effects on the sample's called genotypes due to the variation of DNA quality and concentration.  
+<center>
+![Figure 12: STITCH sample heterozygosity vs missing rate](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_het_vs_missing.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## QC for STITCH sample heterozygosity rate  
+```{r het_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+het_outliers <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_sample_het_rate_threshold_3std.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+```
+Quality control based on the sample heterozygosity rate on genotypes called by STITCH.  
+Threshold:
+
+* mean - 3 * STD < HET < mean + 3 * STD: pass (`r length(het_outliers[het_outliers$QC_sample_heterozygosity_rate == "pass", ]$Sample_ID)` sample(s))  
+* HET > mean + 3 * STD & missing < 0.1; or HET < mean - 3 * STD & missing < 0.1: suspect (`r length(het_outliers[het_outliers$QC_sample_heterozygosity_rate == "suspect", ]$Sample_ID)` sample(s))  
+* HET > mean + 3 * STD & missing >= 0.1; or HET < mean - 3 * STD & missing >= 0.1: fail (`r length(het_outliers[het_outliers$QC_sample_heterozygosity_rate == "fail", ]$Sample_ID)` sample(s))  
+
+The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
+```{r het_outliers_display, echo=FALSE, message=FALSE, warning=FALSE}
+het_outliers <- merge(het_outliers, metadata, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+het_outliers <- het_outliers[het_outliers$QC_sample_heterozygosity_rate != "pass", ]
+row.names(het_outliers) <- NULL
+het_outliers <- subset(het_outliers, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor", "Sample_missing_rate", "Sample_het_rate", "QC_sample_heterozygosity_rate"))
+het_outliers$Sample_ID <- as.character(het_outliers$Sample_ID)
+het_outliers %>% 
+  download_this(
+    output_name = "heterozygosity_rate_outliers",
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+het_outliers <- SharedData$new(het_outliers)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Sex", "Sex", het_outliers, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", het_outliers, ~coatcolor),
+    filter_checkbox("Library Prep", "Library Prep", het_outliers, ~Library_ID),
+    filter_slider("Sample Missing Rate", "Sample Missing Rate", het_outliers, ~Sample_missing_rate, width = "100%"),
+    filter_slider("Sample Heterozygosity Rate", "Sample Heterozygosity Rate", het_outliers, ~Sample_het_rate, width = "100%"),
+    filter_select("Flow Cell", "Flow Cell", het_outliers, ~runid),
+    filter_select("Project Name", "Project Name", het_outliers, ~Sample_Project)
+  ),
+  reactable(het_outliers, 
+    defaultSortOrder = "desc",
+    columns=list(
+      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+        style = sticky_style, headerStyle = sticky_style),
+      runid=colDef(name="Flow Cell"),
+      Sample_Project=colDef(name="Project Name"),
+      Library_ID=colDef(name="Library Prep"),
+      coatcolor=colDef(name="Coat Color"),
+      sex=colDef(name="Sex"),
+      Sample_missing_rate=colDef(name="Sample Missing Rate"),
+      Sample_het_rate=colDef(name="Sample Heterozygosity Rate"),
+      QC_sample_heterozygosity_rate=colDef(name="QC Sample Heterozygosity Rate")
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+  )
+)
+```
+
+## STITCH SNPs missing rate vs. minor allele frequency  
+X axis: SNPs minor allele frequency on genotypes called by STITCH (extract using plink2)  
+Y axis: SNPs missing rate on genotypes called by STITCH (extract using plink2)  
+The effects on the called genotypes' reliability due to the heterozygote and rare-homozygote clusters of the genotype calling algorithm.  
+<center>
+![Figure 13: STITCH SNPs missing rate vs minor allele frequency](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_SNPs_missing_vs_maf.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## STITCH polymorphic SNPs missing rate vs. minor allele frequency  
+X axis: SNPs minor allele frequency on genotypes called by STITCH (extract using plink2)  
+Y axis: SNPs missing rate on genotypes called by STITCH (extract using plink2)  
+The effects on the called genotypes' reliability due to the heterozygote and rare-homozygote clusters of the genotype calling algorithm.   
+STITCH polymorphic SNPs: MAF > 0.005
+<center>
+![Figure 14: STITCH polymorphic SNPs missing rate vs minor allele frequency](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_poly_SNPs_missing_vs_maf.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## BEAGLE SNPs Hardy–Weinberg P value vs. minor allele frequency  
+X axis: SNPs minor allele frequency on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
+Y axis: SNPs -log10(Hardy–Weinberg P value) on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
+The effects on the called genotypes' reliability due to the heterozygote and rare-homozygote clusters of the genotype calling algorithm.  
+<center>
+![Figure 15: BEAGLE SNPs Hardy–Weinberg P value vs minor allele frequency](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_SNPs_hwe_vs_maf.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## BEAGLE polymorphic SNPs Hardy–Weinberg P value vs. minor allele frequency  
+X axis: SNPs minor allele frequency on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
+Y axis: SNPs -log10(Hardy–Weinberg P value) on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
+The effects on the called genotypes' reliability due to the heterozygote and rare-homozygote clusters of the genotype calling algorithm.   
+BEAGLE polymorphic SNPs: MAF > 0.005
+<center>
+![Figure 16: BEAGLE polymorphic SNPs Hardy–Weinberg P value vs minor allele frequency ](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_poly_SNPs_hwe_vs_maf.png")`){#id .class width=60% height=60%}
+
+</center>
+
+## QC for BEAGLE sample albino coat color  
+Quality control on albino coat color based on the genotype at chromosome1:151097606 for each sample.  
+```{r albino_color_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+albino_outliers <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+```
+
+Coat color statistics in this population:  
+```{r coatcolor_stats, echo=FALSE, eval=TRUE, message=FALSE, include=T, results='asis'}
+for(i in 1:length(unique(metadata$coatcolor))){
+    cat("  \n")
+    cat(paste0("* Number of ", unique(metadata$coatcolor)[i], " samples: ", length(metadata[metadata$coatcolor == unique(metadata$coatcolor)[i],]$coatcolor),"\  "))
+    cat("  \n")
+}
+```
+
+Threshold:
+
+* Genotype at 1:151097606 (Albino: TT, Non-Albino: not TT): pass (`r length(albino_outliers[albino_outliers$QC_coatcolor_albino == "pass", ]$Sample_ID)` sample(s))  
+* Genotype at 1:151097606 (Albino: not TT, Non-Albino: TT): fail (`r length(albino_outliers[albino_outliers$QC_coatcolor_albino == "fail", ]$Sample_ID)` sample(s))  
+
+The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
+```{r albino_color_outliers_display, echo=FALSE, message=FALSE, warning=FALSE}
+albino_outliers <- merge(albino_outliers, metadata, by.x=c("Sample_ID", "coatcolor"), by.y=c("Sample_ID", "coatcolor"), all=F)
+albino_outliers <- albino_outliers[albino_outliers$QC_coatcolor_albino != "pass", ]
+row.names(albino_outliers) <- NULL
+albino_outliers <- subset(albino_outliers, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor", "GT_albino_coatcolor_snp", "QC_coatcolor_albino"))
+albino_outliers$Sample_ID <- as.character(albino_outliers$Sample_ID)
+albino_outliers %>% 
+  download_this(
+    output_name = "albino_outliers",
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+albino_outliers <- SharedData$new(albino_outliers)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Sex", "Sex", albino_outliers, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", albino_outliers, ~coatcolor),
+    filter_checkbox("Library Prep", "Library Prep", albino_outliers, ~Library_ID),
+    filter_select("Flow Cell", "Flow Cell", albino_outliers, ~runid),
+    filter_select("Project Name", "Project Name", albino_outliers, ~Sample_Project)
+  ),
+  reactable(albino_outliers, 
+    defaultSortOrder = "desc",
+    columns=list(
+      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+        style = sticky_style, headerStyle = sticky_style),
+      runid=colDef(name="Flow Cell"),
+      Sample_Project=colDef(name="Project Name"),
+      Library_ID=colDef(name="Library Prep"),
+      sex=colDef(name="Sex"),
+      coatcolor=colDef(name="Coat Color"),
+      QC_coatcolor_albino=colDef(name="QC Coat Color Albino")
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+  )
+)
+```
+
+## BEAGLE genotypes PCA plots  
+This shows the diversity of the genotypes of the population.  
+We want to avoid clustering due to batch or some other variations.  
+<center>
+![Figure 17: BEAGLE genotypes PC1 vs. PC2 colored by library prep](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC2_vs_PC1_Library_ID.png")`){#id .class width=55% height=55%} 
+
+![Figure 18: BEAGLE genotypes PC1 vs. PC2 colored by project name](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC2_vs_PC1_Sample_Project.png")`){#id .class width=60% height=60%} 
+
+![Figure 19: BEAGLE genotypes PC1 vs. PC2 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC2_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
+
+![Figure 20: BEAGLE genotypes PC1 vs. PC3 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC3_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
+
+![Figure 21: BEAGLE genotypes PC1 vs. PC4 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC4_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
+
+</center>
+
+
+<!-- Section 7 -->
+# Genotype Log Table  
+The table below shows the comprehensive quality control result on all samples in this genotyping run.  
+```{r genotype_log, echo=FALSE, message=FALSE, warning=FALSE}
+metadata <- read.table(Sys.glob(file.path(paste0(dir_path, "/", ref, "/results/genotype_result/"), "*_metadata.csv")), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE, sep=",")
+metadata <- metadata[metadata$strain == "Heterogenous stock",]
+metadata <- subset(metadata, select = c("Sample_ID", "Sample_Name", "runid", "Library_ID", "Sample_Project", "Mother", "Father", "sex", "coatcolor"))
+
+QC_mapped_reads <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_mapped_reads_threshold_1M.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+genotype_log <- merge(metadata, QC_mapped_reads, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+
+QC_sex_mapped_reads_percent <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_sex_mapped_reads_percent.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+QC_sex_mapped_reads_percent <- subset(QC_sex_mapped_reads_percent, select = c("Sample_ID", "Library_ID", "percent_chrX", "percent_chrY"))
+QC_sex_mapped_reads_percent$QC_sex <- "pass"
+QC_sex_mapped_reads_percent$QC_sex[QC_sex_mapped_reads_percent$Sample_ID %in% sex_outliers_Sample_ID] <- "fail"
+genotype_log <- merge(genotype_log, QC_sex_mapped_reads_percent, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+
+QC_sample_missing_rate <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_sample_missing_rate_threshold_10percent.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+genotype_log <- merge(genotype_log, QC_sample_missing_rate, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+
+QC_sample_heterozygosity_rate <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_sample_het_rate_threshold_3std.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+QC_sample_heterozygosity_rate <- subset(QC_sample_heterozygosity_rate, select = c("Sample_ID", "Library_ID", "Sample_het_rate", "QC_sample_heterozygosity_rate"))
+genotype_log <- merge(genotype_log, QC_sample_heterozygosity_rate, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+
+QC_coatcolor_albino <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+QC_coatcolor_albino <- subset(QC_coatcolor_albino, select = c("Sample_ID", "coatcolor", "GT_albino_coatcolor_snp", "QC_coatcolor_albino"))
+genotype_log <- merge(genotype_log, QC_coatcolor_albino, by.x=c("Sample_ID", "coatcolor"), by.y=c("Sample_ID", "coatcolor"), all=F)
+
+row.names(genotype_log) <- NULL
+genotype_log$Sample_ID <- as.character(genotype_log$Sample_ID)
+genotype_log %>% 
+  download_this(
+    output_name = paste0(sub("_metadata.*", "", gsub("^.*/", "", Sys.glob(file.path(paste0(dir_path, "/", ref, "/results/genotype_result/"), "*_metadata.csv")))), "_genotype_log"),
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+genotype_log <- SharedData$new(genotype_log)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Sex", "Sex", genotype_log, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", genotype_log, ~coatcolor),
+    filter_checkbox("QC Mapped Reads", "QC Mapped Reads", genotype_log, ~QC_mapped_reads),
+    filter_checkbox("QC Sample Missing Rate", "QC Sample Missing Rate", genotype_log, ~QC_sample_missing_rate),
+    filter_checkbox("QC Sample Heterozygosity Rate", "QC Sample Heterozygosity Rate", genotype_log, ~QC_sample_heterozygosity_rate),
+    filter_checkbox("QC Sex", "QC Sex",  genotype_log, ~QC_sex),
+    filter_checkbox("QC coatcolor albino", "QC coatcolor albino", genotype_log, ~QC_coatcolor_albino),
+    filter_select("Library Prep", "Library Prep", genotype_log, ~Library_ID),
+    filter_select("Flow Cell", "Flow Cell", genotype_log, ~runid),
+    filter_select("Project Name", "Project Name", genotype_log, ~Sample_Project)
+  ),
+  reactable(genotype_log, 
+    defaultSortOrder = "desc",
+    columns=list(
+      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+        style = sticky_style, headerStyle = sticky_style),
+      runid=colDef(name="Flow Cell"),
+      Sample_Project=colDef(name="Project Name"),
+      Library_ID=colDef(name="Library Prep"),
+      sex=colDef(name="Sex"),
+      coatcolor=colDef(name="Coat Color"),
+      QC_mapped_reads=colDef(name="QC Mapped Reads"),
+      QC_sex=colDef(name="QC Sex"),
+      QC_sample_missing_rate=colDef(name="QC Sample Missing Rate"),
+      QC_sample_heterozygosity_rate=colDef(name="QC Sample Heterozygosity Rate"),
+      QC_coatcolor_albino=colDef(name="QC coatcolor albino")
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+  )
+)
+```
+
+
+<!-- Section 8 -->
+# Appendix A. Relevant Softwares  
+1. Demultiplex  
+Software used: [Fgbio `r unique(software[software$V1 == "Fgbio", ]$V2)`](http://fulcrumgenomics.github.io/fgbio/)  
+Command used:  
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap \  
+    -jar fgbio-1.2.0.jar DemuxFastqs \  
+    --inputs ${pre_demux_fastq_R1} \  
+            ${pre_demux_fastq_R2} \  
+    --metadata ${metadata} \  
+    --read-structures 8B12M+T 8M+T \  
+    --output-type=Fastq \  
+    --output ${out_path} \  
+    --metrics ${out_path}/demux_metrics.txt  
+```
+2. Alignment  
+Software used: [BWA `r unique(software[software$V1 == "BWA", ]$V2)`](http://bio-bwa.sourceforge.net/index.shtml)  
+Command used:  
+```
+bwa mem -aM -R ${RG} ${reference_genome} \
+    ${fastq_prefix}_R1.fastq.gz ${fastq_prefix}_R2.fastq.gz \
+    > ${sam_prefix}.sam &
+```
+3. Convert SAM to BAM  
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used:  
+```
+samtools view -h -b -t ${reference_genome} -o ${bam_prefix}.bam ${sam_prefix}.sam
+```
+4. Sort BAM by Coordinates  
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used:  
+```
+samtools sort -m 30G -o ${bam_prefix}_sorted.bam ${bam_prefix}.bam
+```
+5. Mark PCR Duplicates  
+Software used: [Picard `r unique(software[software$V1 == "Picard", ]$V2)`](https://broadinstitute.github.io/picard/)  
+Command used:  
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap\
+    -jar picard.jar MarkDuplicates \
+    --INPUT ${bam_prefix}_sorted.bam \
+    --REMOVE_DUPLICATES false \
+    --ASSUME_SORTED true \
+    --METRICS_FILE ${bam_prefix}_sorted_mkDup_metrics.txt \
+    --OUTPUT ${bam_prefix}_sorted_mkDup.bam &
+```
+6. Index BAM for Fast Random Access  
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used:  
+```
+samtools index ${bam_prefix}_sorted_mkDup.bam ${bam_prefix}_sorted_mkDup.bai
+```
+7. STITCH Variant Calling  
+Software used: [STITCH `r unique(software[software$V1 == "STITCH", ]$V2)`](https://github.com/rwdavies/STITCH)  
+Command used:  
+```
+STITCH(
+                      buffer = 1e+6,
+                      method = "diploid",
+    reference_haplotype_file = refHap,
+       reference_legend_file = refLgd,
+                           K = 16,
+                 niterations = 1,
+                      nCores = 1,
+                        nGen = 100,
+      )
+```
+8. BEAGLE Imputation  
+Software used: [BEAGLE `r unique(software[software$V1 == "Beagle", ]$V2)`](https://faculty.washington.edu/browning/beagle/b4_1.html)  
+Command used:  
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap \
+    -jar beagle.27Jan18.7e1.jar \
+    gt=chr${ch}_stitch.vcf.gz \
+    gprobs=true \
+    ne=150 \
+    nthreads=24 \
+    map=${genetic_map}/chr${ch}_beagle.map \
+    out=chr${ch}_bgl
+```
+
+<!-- Section 9 -->
+# Appendix B. Preparation for Reference Data
+## Preparation for reference genome for alignment
+1. Generate the bwa index 
+Software used: [BWA `r unique(software[software$V1 == "BWA", ]$V2)`](http://bio-bwa.sourceforge.net/index.shtml)  
+Command used:   
+```
+bwa index rn6.fa
+```
+
+2. Generate the fasta file index 
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used: 
+```
+samtools faidx rn6.fa
+```
+
+3. Generate the sequence dictionary 
+Software used: [Picard `r unique(software[software$V1 == "Picard", ]$V2)`](https://broadinstitute.github.io/picard/)  
+Command used: 
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap \
+     -jar picard.jar CreateSequenceDictionary \
+        REFERENCE=rn6.fa \
+        OUTPUT=rn6.dict
+```
+
+## Preparation for STITCH variant calling reference panel
+8 HS rat founders mapped on rn6: ```/projects/ps-palmer/hs_rats/reference_genome/rn6_refPnls/data/All8Rats-rn6_gVCFpool.6nt.Pooled.chrs1-20.X.Y.M.renamed.vcf.gz```  
+8 HS rat founders mapped on rn7: ```/projects/ps-palmer/hs_rats/reference_genome/rn7_refPnls/data/VCF.hardfiltered.PASS.combined.vcf.gz```  
+  
+Software used: [bcftools `r unique(software[software$V1 == "BCFTools", ]$V2)`](http://samtools.github.io/bcftools/)  
+Command used:  
+
+1. Separate the founders genotypes based on chromosome, and keep only bi-allelic SNPs since STITCH only accepts bi-allelic SNPs.  
+```
+bcftools view -m2 -M2 -v snps -r ${ch} -Oz -o founders_chr${ch}.vcf.gz \
+                founders.vcf.gz
+```
+
+2. Convert VCF to hap/legend/sample format used by IMPUTE2 and SHAPEIT.  
+```
+bcftools convert -h founders_chr${ch} founders_chr${ch}.vcf.gz
+```
+
+## Preparation for BEAGLE imputation genetic map
+HS rat genetic map:```/projects/ps-palmer/reference_genomes/rat/genetic_map_by_Mike/HS_Rat_Genetic_Map/predicted_cM_SNParray/map_files```  
+
+Citation: Littrell, J., S.-W. Tsaih, A. Baud, P. Rastas, L. Solberg-Woods et al., 2018 A High-Resolution Genetic Map for the Laboratory Rat. G3 (Bethesda) 8: 2241–2248. doi:10.1534/g3.118.200187   
+
+Use the following R code to reorganize the genetic map for BEAGLE.  
+```
+for(c in c(1:20, "X")){
+    fp<- paste(fp, "map_files/chr", sep="")
+    mp<- cbind(chr=paste("chr",c,sep=""), snp=paste("chr",c,"_",mp[,1],sep=""), 
+        mp[,c(3,1)])
+    write.table(mp, file=paste("/beagle_map/chr",c,"_beagle.mp",sep=""),
+        row.names=FALSE, col.names=FALSE, quote=FALSE)
+}
+```
+Example:  
+Before: ```40990 0.490095 4.58974178576291```  
+After: ```chr1 chr1_40990 4.58974178576291 40990```
