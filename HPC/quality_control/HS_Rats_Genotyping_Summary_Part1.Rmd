@@ -1,0 +1,458 @@
+---
+title: | 
+        ![](https://secureservercdn.net/198.71.233.106/h9j.d46.myftpupload.com/wp-content/uploads/2019/09/palmerlab-logo.png){#id .class width=40% height=40%}  
+        Genotyping Summary Report  
+author: "Palmer Lab"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document:
+    theme: united
+    toc: true
+    toc_float: true
+    number_sections: true
+params:
+  dir_path:
+    value: x
+  code_path:
+    value: x
+  sex_outliers_Sample_ID:
+    value: x
+---
+
+<!-- css to zoom in the plots and display two SNPs Density plots in a row -->
+<style type="text/css">
+.twoCol {width: 100%}
+.twoCol img {max-width: 50%; float: right}
+.twoCol img {max-width: 50%; float: left}
+.floatImg {width: 100%}
+.floatImg img {max-width: 100%; max-height:80%; float: center}
+.zoomDiv {
+  opacity: 0;
+  position:fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  box-shadow: 0px 0px 50px #888888;
+  max-height:100%; 
+  overflow: scroll
+}
+.zoomImg {width: 100%}
+</style>
+
+<!-- javascript to zoom in the plots when click on the plots -->
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('.floatImg').prepend("<div class=\"zoomDiv\"><img src=\"\" class=\"zoomImg\"></div>");
+    // onClick function for all plots (img's)
+    $('img:not(.zoomImg)').click(function() {
+      $('.zoomImg').attr('src', $(this).attr('src'));
+      $('.zoomDiv').css({opacity: '1', width: '80%'});
+    });
+    // onClick function for zoomImg
+    $('img.zoomImg').click(function() {
+      $('.zoomDiv').css({opacity: '0', width: '0%'});
+    });
+  });
+</script>
+
+<!-- html container to display the zoomed-in plots -->
+<div class="floatImg">
+</div>
+
+<!-- RIP to my desktop path to the folder -->
+
+<!-- main report starts here -->
+```{r basics, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(data.table)
+library(dplyr)
+library(DT)
+library(crosstalk)
+library(reactable)
+library(downloadthis)
+dir_path <- params$dir_path
+code_path <- params$code_path
+sex_outliers_Sample_ID <- params$sex_outliers_Sample_ID
+pipeline_arguments <- read.table(paste0(code_path, "/" , "pipeline_arguments"),
+                                 stringsAsFactors=FALSE, header=FALSE,  strip.white=TRUE)
+ref <- sub("[.].*", "", gsub("^.*/", "", pipeline_arguments$V1[4]))
+software <- read.table(paste0(code_path, "/" , "software/software_location"), sep="\t",
+                                 stringsAsFactors=FALSE, header=FALSE,  strip.white=TRUE)
+```
+
+<!-- Section 1 -->
+# Pipeline Overview  
+## Pipeline workflow  
+The pipeine flow chart is shown in figure 1.  
+<center>
+![Figure 1: Pipeline flow chart](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline/master/assets/pipeline_overview.png){#id .class width=80% height=80%}  
+
+</center>
+
+## Resources  
+Github: [https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline)  
+Citation: 
+
+<!-- Section 2 -->
+# Data  
+```{r data, echo=FALSE}
+metadata <- read.table(paste0(dir_path, "/demux/sample_sheet.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE, sep=",")
+metadata <- metadata[metadata$strain == "Heterogenous stock",]
+```
+
+## Sequence Data  
+Sample strain: `r unique(metadata$strain)`  
+Number of samples: `r length(metadata$Sample_ID)`  
+Flow cell run ID(s): `r unique(metadata$runid)`  
+Riptide library preparation: `r unique(metadata$Library_ID)`  
+Projects: `r unique(metadata$Sample_Project)`  
+
+```{r seuquence_data_summary, echo=FALSE, message=FALSE, warning=FALSE}
+data_summary <- metadata %>% group_by(runid, Library_ID, Sample_Project) %>% summarise(Num_Sample=n_distinct(Sample_ID))
+data_summary %>%
+  download_this(
+    output_name = "seuquence_data_summary",
+    output_extension = ".csv",
+    button_label = "Download table as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+data_summary <- SharedData$new(data_summary)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Library Prep", "Library Prep", data_summary, ~Library_ID),
+    filter_select("Flow Cell", "Flow Cell", data_summary, ~runid),
+    filter_select("Project Name", "Project Name", data_summary, ~Sample_Project)
+  ),
+  reactable(data_summary, 
+    defaultSortOrder = "desc",
+    columns=list(
+      runid=colDef(name="Run ID", defaultSortOrder = "desc", footer = "Total Samples"),
+      Library_ID=colDef(name="Library ID"),
+      Sample_Project=colDef(name="Sample Project"),
+      Num_Sample=colDef(name="Number of Samples", footer = function(values) sprintf("%d", sum(values)))
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+    defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
+  )
+)
+```
+
+## Reference Data  
+Reference genome for alignment: `r gsub("^.*/", "", pipeline_arguments$V1[4])`  
+STITCH variant calling reference panel: `r gsub("^.*/", "", pipeline_arguments$V1[5])`  
+BEAGLE imputation genetic map: `r gsub("^.*/", "", pipeline_arguments$V1[6])`  
+
+
+<!-- Section 3 -->
+# Demultiplex Results  
+Basic statistics of demultiplexing with Fgbio.  
+
+## Number of reads for each sample  
+Number of reads for each sample after demultiplexing with Fgbio.  
+This is extracted from the SampleBarcodeMetric of Fgbio DemuxFastqs function.  
+<center>
+![Figure 2: Number of reads for each sample after demultiplexing](`r paste0(dir_path, ref, "/results/demux_result/after_demux_demux_reads.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+```{r demultiplex_reads_table, echo=FALSE, message=FALSE, warning=FALSE}
+demultiplex_reads <- read.table(paste0(dir_path, "/" , ref,"/results/demux_result/demux_barcode_metrics"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE, sep="\t")
+demultiplex_reads <- subset(demultiplex_reads, select = c("barcode_name", "library_name", "templates"))
+demultiplex_reads %>%
+  download_this(
+    output_name = "demultiplex_reads_table",
+    output_extension = ".csv",
+    button_label = "Download table as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+reactable(demultiplex_reads, 
+  defaultSortOrder = "desc",
+  columns=list(
+    barcode_name=colDef(name="Sample Name", defaultSortOrder = "desc"),
+    library_name=colDef(name="Library ID"),
+    templates=colDef(name="Number of Reads after Demultiplex")
+  ),
+  highlight = TRUE,
+  striped = TRUE,
+  defaultColDef = colDef(footerStyle = list(fontWeight = "bold"))
+)
+```
+
+
+<!-- Section 4 -->
+# Alignment Results  
+Basic statistics of alignment with BWA mem and Picard MarkDuplicates.  
+
+## Number of mapped reads for each sample  
+Number of mapped reads for each sample after marking duplicates.  
+This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.  
+<center>
+![Figure 3: Number of mapped reads for each sample](`r paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_mapped_reads.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## QC for mapped reads
+```{r QC_mapped_reads_threshold_1M, echo=FALSE, message=FALSE, warning=FALSE}
+QC_mapped_reads_threshold_1M <- read.table(paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_QC_mapped_reads_threshold_1M.csv"), stringsAsFactors=FALSE,
+                        header=TRUE,  strip.white=TRUE,sep=",")
+```
+Quality control based on the number of mapped reads for each sample.  
+Threshold:  
+
+* Number of mapped reads < 1 million: fail (`r length(QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads == "fail", ]$Sample_ID)` sample(s))  
+* Number of mapped reads >= 1 million: pass (`r length(QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads == "pass", ]$Sample_ID)` sample(s))  
+
+The table below only shows the samples that failed this quality control.  
+```{r QC_mapped_reads_threshold_1M_display, echo=FALSE, message=FALSE, warning=FALSE}
+QC_mapped_reads_threshold_1M <- merge(QC_mapped_reads_threshold_1M, metadata, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+QC_mapped_reads_threshold_1M <- QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads != "pass", ]
+row.names(QC_mapped_reads_threshold_1M) <- NULL
+QC_mapped_reads_threshold_1M <- subset(QC_mapped_reads_threshold_1M, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor","Mapped_reads", "QC_mapped_reads"))
+QC_mapped_reads_threshold_1M$Sample_ID <- as.character(QC_mapped_reads_threshold_1M$Sample_ID)
+QC_mapped_reads_threshold_1M %>% 
+  download_this(
+    output_name = "QC_mapped_reads_threshold_1M",
+    output_extension = ".csv",
+    button_label = "Download data as csv",
+    button_type = "default",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+QC_mapped_reads_threshold_1M <- SharedData$new(QC_mapped_reads_threshold_1M)
+sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                     borderRight = "1px solid #eee")
+bscols(
+  widths = c(2, 10),
+  list(
+    filter_checkbox("Sex", "Sex", QC_mapped_reads_threshold_1M, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", QC_mapped_reads_threshold_1M, ~coatcolor),
+    filter_checkbox("Library Prep", "Library Prep", QC_mapped_reads_threshold_1M, ~Library_ID),
+    filter_slider("Mapped Read Pairs (million)", "Mapped Read Pairs (million)", QC_mapped_reads_threshold_1M, ~Mapped_reads, width = "100%"),
+    filter_select("Flow Cell", "Flow Cell", QC_mapped_reads_threshold_1M, ~runid),
+    filter_select("Project Name", "Project Name", QC_mapped_reads_threshold_1M, ~Sample_Project)
+  ),
+  reactable(QC_mapped_reads_threshold_1M, 
+    defaultSortOrder = "desc",
+    columns=list(
+      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+        style = sticky_style, headerStyle = sticky_style),
+      runid=colDef(name="Flow Cell"),
+      Sample_Project=colDef(name="Project Name"),
+      Library_ID=colDef(name="Library Prep"),
+      sex=colDef(name="Sex"),
+      coatcolor=colDef(name="Coat Color"),
+      Mapped_reads=colDef(name="Mapped Read Pairs (million)"),
+      QC_mapped_reads=colDef(name="QC Reads")
+    ),
+    highlight = TRUE,
+    striped = TRUE,
+  )
+)
+```
+
+## Ratio of unmapped reads for each sample  
+Ratio of unmapped reads over all reads for each sample after marking duplicates.  
+This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.  
+<center>
+![Figure 4: Ratio of unmapped reads for each sample](`r paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_unmapped_rate.png")`){#id .class width=60% height=60%}   
+
+</center>
+
+## Ratio of duplicated reads for each sample  
+Ratio of duplicated reads over all reads for each sample after marking duplicates.  
+This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.  
+<center>
+![Figure 5: Ratio of duplication reads for each sample](`r paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_duplication_rate.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## Number of mapped reads separated by chr  
+Number of mapped reads on each chromosome for each sample after marking duplicates.  
+This is extracted from the aligned BAM files with Samtools idxstats.  
+<center>
+![Figure 6: Number of mapped reads for each chromosome (separated by chr)](`r paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_mapped_reads_per_chr.png")`){#id .class width=100% height=100%}  
+
+</center>
+
+## Ratio of mapped reads separated by chr  
+Ratio of mapped reads on each chromosome over all reads for each sample after marking duplicates.  
+This is extracted from the aligned BAM files with Samtools idxstats.  
+<center>
+![Figure 7: Ratio of mapped reads for each chromosome (separated by chr)](`r paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_percent_mapped_per_chr.png")`){#id .class width=100% height=100%}  
+
+</center>
+
+## Ratio of mapped reads on chrY vs. chrX  
+Ratio of mapped reads on chromosome X vs Y over all reads for each sample after marking duplicates.  
+This is extracted from the aligned BAM files with Samtools idxstats.  
+This could be used to do quality control based on animal's sex.  
+<center>
+![Figure 8: Ratio of mapped reads for each sample chrY vs. chrX](`r paste0(dir_path, "/" , ref,"/results/mapping_result/after_mkDup_QC_sex.png")`){#id .class width=60% height=60%}  
+
+</center>
+
+## QC for sex  
+Quality control on sex based on the clustering on the ratio of mapped reads on chromosome X vs Y over all reads for each sample.  
+Sex statistics in this population:  
+```{r sex_stats, echo=FALSE, eval=TRUE, message=FALSE, include=T, results='asis'}
+for(i in 1:length(unique(metadata$sex))){
+    cat("  \n")
+    cat(paste0("* Number of ", unique(metadata$sex)[i], " samples: ", length(metadata[metadata$sex == unique(metadata$sex)[i],]$sex),"\  "))
+    cat("  \n")
+}
+```
+
+The table below only shows the samples that failed this quality control.  
+
+```{r sex_outliers, echo=FALSE, message=FALSE, warning=FALSE}
+if(length(sex_outliers_Sample_ID) == 0){
+  print("There's no sample that fails sex QC!")
+}else{
+  sex_outliers <- metadata[metadata$Sample_ID %in% sex_outliers_Sample_ID,]
+  row.names(sex_outliers) <- NULL
+  sex_outliers <- subset(sex_outliers, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "coatcolor", "sex"))
+  sex_outliers$QC_sex <- "fail"
+  sex_outliers$Sample_ID <- as.character(sex_outliers$Sample_ID)
+  sex_outliers %>% 
+    download_this(
+      output_name = "sex_outliers",
+      output_extension = ".csv",
+      button_label = "Download data as csv",
+      button_type = "default",
+      has_icon = TRUE,
+      icon = "fa fa-save"
+    )
+  sex_outliers <- SharedData$new(sex_outliers)
+  sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
+                      borderRight = "1px solid #eee")
+  bscols(
+    widths = c(2, 10),
+    list(
+      filter_checkbox("Sex", "Sex", sex_outliers, ~sex),
+      filter_checkbox("Coat Color", "Coat Color", sex_outliers, ~coatcolor),
+      filter_checkbox("Library Prep", "Library Prep", sex_outliers, ~Library_ID),
+      filter_select("Flow Cell", "Flow Cell", sex_outliers, ~runid),
+      filter_select("Project Name", "Project Name", sex_outliers, ~Sample_Project)
+    ),
+    reactable(sex_outliers, 
+      defaultSortOrder = "desc",
+      columns=list(
+        Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
+          style = sticky_style, headerStyle = sticky_style),
+        runid=colDef(name="Flow Cell"),
+        Library_ID=colDef(name="Library Prep"),
+        Sample_Project=colDef(name="Project Name"),
+        coatcolor=colDef(name="Coat Color"),
+        sex=colDef(name="Sex"),
+        QC_sex=colDef(name="QC Sex")
+      ),
+      highlight = TRUE,
+      striped = TRUE,
+    )
+  )
+}
+```
+
+<!-- Section 5 -->
+# MultiQC Summary  
+For more infomation about the demultiplex and alignmnet, please visit the MultiQC links below.  
+```{r multiqc, echo=FALSE, message=FALSE, warning=FALSE}
+summary <- metadata %>% group_by(runid, Library_ID) %>% summarise(Num_Sample=n_distinct(Sample_ID))
+summary$MultiQC <- paste0("[link](https://www.dropbox.com/home/Palmer%20Lab/Denghui%20Chen/hs_rats/", unique(metadata$runid)[1], "/qc/rn6/", summary$Library_ID, "/multiqc?preview=multiqc_report.html", ")")
+colnames(summary) <- c("Run ID", "Library ID", "Number of Samples", "MultiQC Link")
+knitr::kable(summary)
+```
+
+
+<!-- Section 6 -->
+# Appendix A. Relevant Softwares  
+1. Demultiplex  
+Software used: [Fgbio `r unique(software[software$V1 == "Fgbio", ]$V2)`](http://fulcrumgenomics.github.io/fgbio/)  
+Command used:  
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap \  
+    -jar fgbio-1.2.0.jar DemuxFastqs \  
+    --inputs ${pre_demux_fastq_R1} \  
+            ${pre_demux_fastq_R2} \  
+    --metadata ${metadata} \  
+    --read-structures 8B12M+T 8M+T \  
+    --output-type=Fastq \  
+    --output ${out_path} \  
+    --metrics ${out_path}/demux_metrics.txt  
+```
+2. Alignment  
+Software used: [BWA `r unique(software[software$V1 == "BWA", ]$V2)`](http://bio-bwa.sourceforge.net/index.shtml)  
+Command used:  
+```
+bwa mem -aM -R ${RG} ${reference_genome} \
+    ${fastq_prefix}_R1.fastq.gz ${fastq_prefix}_R2.fastq.gz \
+    > ${sam_prefix}.sam &
+```
+3. Convert SAM to BAM  
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used:  
+```
+samtools view -h -b -t ${reference_genome} -o ${bam_prefix}.bam ${sam_prefix}.sam
+```
+4. Sort BAM by Coordinates  
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used:  
+```
+samtools sort -m 30G -o ${bam_prefix}_sorted.bam ${bam_prefix}.bam
+```
+5. Mark PCR Duplicates  
+Software used: [Picard `r unique(software[software$V1 == "Picard", ]$V2)`](https://broadinstitute.github.io/picard/)  
+Command used:  
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap\
+    -jar picard.jar MarkDuplicates \
+    --INPUT ${bam_prefix}_sorted.bam \
+    --REMOVE_DUPLICATES false \
+    --ASSUME_SORTED true \
+    --METRICS_FILE ${bam_prefix}_sorted_mkDup_metrics.txt \
+    --OUTPUT ${bam_prefix}_sorted_mkDup.bam &
+```
+6. Index BAM for Fast Random Access  
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used:  
+```
+samtools index ${bam_prefix}_sorted_mkDup.bam ${bam_prefix}_sorted_mkDup.bai
+```
+
+<!-- Section 7 -->
+# Appendix B. Preparation for Reference Data
+## Preparation for reference genome for alignment
+1. Generate the bwa index 
+Software used: [BWA `r unique(software[software$V1 == "BWA", ]$V2)`](http://bio-bwa.sourceforge.net/index.shtml)  
+Command used:   
+```
+bwa index rn6.fa
+```
+
+2. Generate the fasta file index 
+Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
+Command used: 
+```
+samtools faidx rn6.fa
+```
+
+3. Generate the sequence dictionary 
+Software used: [Picard `r unique(software[software$V1 == "Picard", ]$V2)`](https://broadinstitute.github.io/picard/)  
+Command used: 
+```
+java -XX:+AggressiveOpts -XX:+AggressiveHeap \
+     -jar picard.jar CreateSequenceDictionary \
+        REFERENCE=rn6.fa \
+        OUTPUT=rn6.dict
+```
