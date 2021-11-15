@@ -8,3 +8,6 @@ This [Github repository](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-P
 
 ## Pipeline Overview
 ![](assets/pipeline_overview.png)
+
+## Pipeline Output Directory Structure
+![](assets/output_directory_structure.png)
