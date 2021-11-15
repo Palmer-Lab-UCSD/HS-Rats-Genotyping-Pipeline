@@ -155,6 +155,9 @@ conda deactivate
 END=$(date +%s)
 echo " mapping stats per sample per chr plots time elapsed: $(( $END - $START )) seconds"
 
+
+echo "------------------------- RMarkdown genotype summary report ------------------------"
+START=$(date +%s)
 source activate hs_rats
 flowcell_ID_py=$(cat <<'EOF'
 import pandas as pd
@@ -169,8 +172,6 @@ flowcell_ID() { python3 -c "${flowcell_ID_py}" "$@"; }
 
 current_flowcell=$(flowcell_ID ${sample_sheet})
 
-echo "------------------------- RMarkdown genotype summary report ------------------------"
-source activate hs_rats
 Rscript ${code}/quality_control/HS_Rats_Genotyping_Summary.r \
   ${current_flowcell} ${dir_path} ${code} Part1 \
   ${sex_outliers_Sample_ID}

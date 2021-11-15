@@ -440,7 +440,9 @@ conda deactivate
 END=$(date +%s)
 echo "BEALGE Pairwise concordance check Time elapsed: $(( $END - $START )) seconds"
 
+
 echo "------------------------- RMarkdown genotype summary report ------------------------"
+START=$(date +%s)
 source activate hs_rats
 Rscript ${code}/quality_control/HS_Rats_Genotyping_Summary.r \
   ${vcf_prefix} ${dir_path} ${code} Part2 \
