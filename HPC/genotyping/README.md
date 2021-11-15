@@ -1,6 +1,6 @@
 ![alt text](https://secureservercdn.net/198.71.233.106/h9j.d46.myftpupload.com/wp-content/uploads/2019/09/palmerlab-logo.png)
 # TSCC Genotyping
-## Source code for HS rats pipeline on [TSCC](https://www.sdsc.edu/support/user_guides/tscc.html)
+## Source code for genotyping section of the HS rats genotyping pipeline
 :information_source: :information_source: :information_source:  **INFOMATION** :information_source: :information_source: :information_source:  
 
 ## Contents

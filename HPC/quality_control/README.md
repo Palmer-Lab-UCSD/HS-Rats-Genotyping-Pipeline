@@ -1,33 +1,40 @@
 ![alt text](https://secureservercdn.net/198.71.233.106/h9j.d46.myftpupload.com/wp-content/uploads/2019/09/palmerlab-logo.png)
-# TSCC Quality Control
-## Source code for HS rats pipeline on [TSCC](https://www.sdsc.edu/support/user_guides/tscc.html)
+# Quality Control
+## Source code for quality control section of the HS rats genotyping pipeline
 :information_source: :information_source: :information_source:  **INFOMATION** :information_source: :information_source: :information_source:  
  
 ## Contents
 **[QC1_multiqc_array_jobs.sh](QC1_multiqc_array_jobs.sh)**  
-Run FastQC on fastq files and run Qualimap on marked-duplicates BAM files, and run MultiQC on the results of FastQC, Qualimap and Picard DuplicationMetrics. Resutls are separated by Riptide library preparation.  
+Run FastQC on fastq files, Qualimap on marked-duplicates BAM files, and MultiQC on the results of FastQC, Qualimap and Picard DuplicationMetrics. Resutls are separated by Riptide library preparation.  
 
 **[QC2_mappingResult.sh](QC2_mappingResult.sh)**  
-Make plots for demultiplex results
-1. Boxplot and scatter plot for number of matched reads for each library
-2. Boxplot for % of unmatched reads  
-
-Make plots for alignment results  
-1. Boxplot and scatter plot for mapped read pairs
-2. Boxplot and scatter plot for unmapped reads
-3. Boxplot and scatter plot for duplications
-4. Boxplot and scatter plot for uniquely mapped reads
-5. Boxplot for mapped reads on each chromosome
-6. Boxplot for GC content of mapped reads on each chromosome  
+Visualization for demultiplex and alignment result  
+1. Number of reads after demultiplexing
+2. Number of mapped read pairs after alignment
+2. Number of unmapped reads after alignment
+3. Duplication rate after alignment
+4. Number of mapped reads per chromosome after alignment
+5. Ratio of mapped reads per chromosome after alignment
+6. Quality control on sex based on mapped reads on chromosome X and Y
+7. Quality control on number of mapped reads
 
 **[QC3_genotypeResult.sh](QC3_genotypeResult.sh)**  
-Make plots for genotype results  
-1. Histogram for STITCH info score
-2. Heterozygosity rate vs. missing rate after STITCH
-3. SNPs stats and density plot after BEAGLE
-4. MAF histogram after BEAGLE
-5. HWE histogram after BEAGLE
-6. HWE vs. MAF heatmap after BEAGLE
-7. PCA plots after BEAGLE
-8. Albino coat color QC based on SNP 1:151097606
-9. Pairwise concordance check
+Visualization for demultiplex, alignment and genotype result on all samples includede in the genotyping run   
+1. Number of reads after demultiplexing
+2. Number of mapped read pairs after alignment
+2. Number of unmapped reads after alignment
+3. Duplication rate after alignment
+4. Number of mapped reads per chromosome after alignment
+5. Ratio of mapped reads per chromosome after alignment
+6. Quality control on sex based on mapped reads on chromosome X and Y
+7. Quality control on number of mapped reads
+8. INFO score after STITCH imputation
+9. SNPs density after STITCH imputation
+10. Sample missing rate vs. mapped reads after STITCH imputation
+11. Sample heterozygosity rate vs. missing rate after STITCH imputation
+12. SNPs missing rate vs. minor allele frequency after STITCH imputation
+13. SNPs density after BEAGLE imputation
+14. SNPs hwe P value vs. minor allele frequency after BEAGLE imputation
+15. Genotypes PCA plots after Beagle imputation
+16. Quality control on sample missing rate
+17. Quality control on sample heterozygosity rate
