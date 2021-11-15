@@ -27,7 +27,7 @@ Paths to previous flow cells' metadata.
 Paths to previous flow cells' BAM files.   
 
 ## Documentation  
-### Before running the pipeline on TSCC:
+### Before running the pipeline:
 Please update the following files to suit your purpose:  
 1. Follow the instruction in [software](software) to install required software
 2. [pipeline_arguments](pipeline_arguments)
@@ -36,6 +36,7 @@ Please update the following files to suit your purpose:
 5. Update the PBS Torque arguments and the corresponding file locations on [submission_TSCC_PBS.sh](submission_TSCC_PBS.sh).  
 
 ### Run the pipeline on TSCC:
+To run the pipeline on other PBS platform besides TSCC, please change the submission script accordingly.
 1. Change the permission of the submission script
 ```
 chmod u+x submission_TSCC_PBS.sh

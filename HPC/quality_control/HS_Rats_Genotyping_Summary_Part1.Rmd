@@ -86,13 +86,12 @@ software <- read.table(paste0(code_path, "/" , "software/software_location"), se
 ## Pipeline workflow  
 The pipeine flow chart is shown in figure 1.  
 <center>
-![Figure 1: Pipeline flow chart](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline/master/assets/pipeline_overview.png){#id .class width=80% height=80%}  
+![Figure 1: Pipeline flow chart](https://raw.githubusercontent.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline/main/assets/pipeline_overview.png){#id .class width=80% height=80%}  
 
 </center>
 
 ## Resources  
 Github: [https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline)  
-Citation: 
 
 <!-- Section 2 -->
 # Data  
@@ -159,7 +158,7 @@ Basic statistics of demultiplexing with Fgbio.
 Number of reads for each sample after demultiplexing with Fgbio.  
 This is extracted from the SampleBarcodeMetric of Fgbio DemuxFastqs function.  
 <center>
-![Figure 2: Number of reads for each sample after demultiplexing](`r paste0(dir_path, ref, "/results/demux_result/after_demux_demux_reads.png")`){#id .class width=60% height=60%}  
+![Figure 2: Number of reads for each sample after demultiplexing](`r paste0(dir_path, "/", ref, "/results/demux_result/after_demux_demux_reads.png")`){#id .class width=60% height=60%}  
 
 </center>
 
