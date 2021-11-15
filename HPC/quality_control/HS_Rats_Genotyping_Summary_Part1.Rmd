@@ -92,7 +92,6 @@ The pipeine flow chart is shown in figure 1.
 
 ## Resources  
 Github: [https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline)  
-Citation: 
 
 <!-- Section 2 -->
 # Data  
