@@ -784,8 +784,7 @@ bscols(
 Software used: [Fgbio `r unique(software[software$V1 == "Fgbio", ]$V2)`](http://fulcrumgenomics.github.io/fgbio/)  
 Command used:  
 ```
-java -XX:+AggressiveOpts -XX:+AggressiveHeap \  
-    -jar fgbio-1.2.0.jar DemuxFastqs \  
+java -jar fgbio.jar DemuxFastqs \  
     --inputs ${pre_demux_fastq_R1} \  
             ${pre_demux_fastq_R2} \  
     --metadata ${metadata} \  
@@ -812,14 +811,13 @@ samtools view -h -b -t ${reference_genome} -o ${bam_prefix}.bam ${sam_prefix}.sa
 Software used: [Samtools `r unique(software[software$V1 == "Samtools", ]$V2)`](http://www.htslib.org/)  
 Command used:  
 ```
-samtools sort -m 30G -o ${bam_prefix}_sorted.bam ${bam_prefix}.bam
+samtools sort -o ${bam_prefix}_sorted.bam ${bam_prefix}.bam
 ```
 5. Mark PCR Duplicates  
 Software used: [Picard `r unique(software[software$V1 == "Picard", ]$V2)`](https://broadinstitute.github.io/picard/)  
 Command used:  
 ```
-java -XX:+AggressiveOpts -XX:+AggressiveHeap\
-    -jar picard.jar MarkDuplicates \
+java -jar picard.jar MarkDuplicates \
     --INPUT ${bam_prefix}_sorted.bam \
     --REMOVE_DUPLICATES false \
     --ASSUME_SORTED true \
@@ -843,7 +841,6 @@ STITCH(
        reference_legend_file = refLgd,
                            K = 16,
                  niterations = 1,
-                      nCores = 1,
                         nGen = 100,
       )
 ```
@@ -851,8 +848,7 @@ STITCH(
 Software used: [BEAGLE `r unique(software[software$V1 == "Beagle", ]$V2)`](https://faculty.washington.edu/browning/beagle/b4_1.html)  
 Command used:  
 ```
-java -XX:+AggressiveOpts -XX:+AggressiveHeap \
-    -jar beagle.27Jan18.7e1.jar \
+java -jar beagle.27Jan18.7e1.jar \
     gt=chr${ch}_stitch.vcf.gz \
     gprobs=true \
     ne=150 \
@@ -882,8 +878,7 @@ samtools faidx rn6.fa
 Software used: [Picard `r unique(software[software$V1 == "Picard", ]$V2)`](https://broadinstitute.github.io/picard/)  
 Command used: 
 ```
-java -XX:+AggressiveOpts -XX:+AggressiveHeap \
-     -jar picard.jar CreateSequenceDictionary \
+java -jar picard.jar CreateSequenceDictionary \
         REFERENCE=rn6.fa \
         OUTPUT=rn6.dict
 ```
