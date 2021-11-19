@@ -117,7 +117,8 @@ data_summary %>%
     button_label = "Download table as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 data_summary <- SharedData$new(data_summary)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
@@ -173,7 +174,8 @@ demultiplex_reads %>%
     button_label = "Download table as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 reactable(demultiplex_reads, 
   defaultSortOrder = "desc",
@@ -226,7 +228,8 @@ QC_mapped_reads_threshold_1M %>%
     button_label = "Download data as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 QC_mapped_reads_threshold_1M <- SharedData$new(QC_mapped_reads_threshold_1M)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
@@ -330,7 +333,8 @@ if(length(sex_outliers_Sample_ID) == 0){
       button_label = "Download data as csv",
       button_type = "default",
       has_icon = TRUE,
-      icon = "fa fa-save"
+      icon = "fa fa-save",
+    csv2 = FALSE
     )
   sex_outliers <- SharedData$new(sex_outliers)
   sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
@@ -393,7 +397,8 @@ vatiant_stats %>%
     button_label = "Download data as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 reactable(vatiant_stats, 
   defaultSortOrder = "desc",
@@ -465,7 +470,8 @@ missing_rate_outliers %>%
     button_label = "Download data as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 missing_rate_outliers <- SharedData$new(missing_rate_outliers)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
@@ -535,7 +541,8 @@ het_outliers %>%
     button_label = "Download data as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 het_outliers <- SharedData$new(het_outliers)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
@@ -644,7 +651,8 @@ albino_outliers %>%
     button_label = "Download data as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 albino_outliers <- SharedData$new(albino_outliers)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
@@ -736,7 +744,8 @@ genotype_log %>%
     button_label = "Download data as csv",
     button_type = "default",
     has_icon = TRUE,
-    icon = "fa fa-save"
+    icon = "fa fa-save",
+    csv2 = FALSE
   )
 genotype_log <- SharedData$new(genotype_log)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
