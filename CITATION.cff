@@ -15,7 +15,7 @@ authors:
   - family-names: Palmer
     given-names: Abraham
 title: "Palmer Lab Heterogeneous Stock Rats Genotyping Pipeline"
-version: 1.0.0
-doi: 10.5281/zenodo.5703421
-date-released: 2021-11-15
+version: 2.0.0
+doi: 10.5281/zenodo.6621800
+date-released: 2022-06-07
 url: https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline
