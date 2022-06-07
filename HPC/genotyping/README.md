@@ -13,8 +13,11 @@ Use array jobs feature on PBS to <ins>demultiplex the fastq files ([Fgbio](http:
 **[step3_alignment_array_jobs.sh](step3_alignment_array_jobs.sh)**  
 Use array jobs feature on PBS to <ins>map the sequencing reads to reference genome ([BWA](http://bio-bwa.sourceforge.net/index.shtml)), convert SAM files to BAM files ([Samtools](http://www.htslib.org/)), sort BAM files ([Samtools](http://www.htslib.org/)), mark PCR duplicates on BAM files ([Picard](https://broadinstitute.github.io/picard/)) and index the marked-duplicates BAM files ([Samtools](http://www.htslib.org/))</ins> in parallel.  
 
-**[step4_stitch_variantCalling_array_jobs.sh](step4_stitch_variantCalling_array_jobs.sh)**  
+**[step4_stitch_genotypeCalling_array_jobs.sh](step4_stitch_genotypeCalling_array_jobs.sh)**  
 Use array jobs feature on PBS to <ins>do variant calling ([STITCH](https://github.com/rwdavies/STITCH))</ins> in parallel.  
 
-**[step5_beagle_imputation_array_jobs.sh](step5_beagle_imputation_array_jobs.sh)**  
-Use array jobs feature on PBS to <ins>do imputation ([BEAGLE](https://faculty.washington.edu/browning/beagle/b4_1.html))</ins> in parallel.  
+**[step5_concat_variants.sh](step5_concat_variants.sh)**  
+<ins>Concatenate STITCH results with ([Bcftools](http://samtools.github.io/bcftools/bcftools.html))</ins>.  
+
+**[step6_variants_filtering.sh](step6_variants_filtering.sh)**  
+<ins>Filter STITCH results with ([Bcftools](http://samtools.github.io/bcftools/bcftools.html))</ins>.  

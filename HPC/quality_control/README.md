@@ -4,8 +4,8 @@
 :information_source: :information_source: :information_source:  **INFOMATION** :information_source: :information_source: :information_source:  
  
 ## Contents
-**[QC1_multiqc_array_jobs.sh](QC1_multiqc_array_jobs.sh)**  
-Run FastQC on fastq files, Qualimap on marked-duplicates BAM files, and MultiQC on the results of FastQC, Qualimap and Picard DuplicationMetrics. Resutls are separated by Riptide library preparation.  
+**[QC1_multiqc_trimming.sh](QC1_multiqc_trimming.sh)**  
+Run FastQC on fastq files before and after trimming and MultiQC on the results. Resutls are separated by Riptide library preparation.  
 
 **[QC2_mappingResult.sh](QC2_mappingResult.sh)**  
 Visualization for demultiplex and alignment result  

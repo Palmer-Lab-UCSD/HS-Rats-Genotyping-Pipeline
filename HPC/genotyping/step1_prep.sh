@@ -2,12 +2,12 @@
 
 #### read in declared PBS environment variables
 pipeline_arguments=$1
-PREV_BAMS=$2
-PREV_METADATA=$3
+previous_flow_cells_bams=$2
+previous_flow_cells_metadata=$3
 
 #### extract info from argument files
 dir_path=$(head -n 1 ${pipeline_arguments} | tail -n 1)
-code=$(head -n 7 ${pipeline_arguments} | tail -n 1)
+code=$(head -n 6 ${pipeline_arguments} | tail -n 1)
 original_sample_sheet=$(head -n 2 ${pipeline_arguments} | tail -n 1)
 ref_gen=$(head -n 4 ${pipeline_arguments} | tail -n 1 | rev | cut -d '/' -f 1 | cut -d '.' -f 2- | rev)
 
@@ -28,45 +28,61 @@ echo "----------------------------------------------------------------------"
 START=$(date +%s)
 #### create the directory structure.
 if [ -d "${dir_path}" ]; then
-   echo "folder: ${dir_path} already exists"
+	folder: ${dir_path} already exists"
 else
-   echo "create folder: ${dir_path}"
-   mkdir ${dir_path}
+	echo "create folder: ${dir_path}"
+	mkdir ${dir_path}
 fi
 
 #### create a shared demux folder between the reference genomes
 file=${dir_path}/demux
 if [ -d "${file}" ]; then
-   echo "folder: ${file} already exists"
+	echo "folder: ${file} already exists"
 else
-   echo "create folder: ${file}"
-   mkdir ${file}
-   mkdir ${file}/fastq
-   mkdir ${file}/metrics
+	echo "create folder: ${file}"
+	mkdir ${file}
+	mkdir ${file}/fastq
+	mkdir ${file}/metrics
+fi
+
+#### create a shared trimmed folder between the reference genomes
+file=${dir_path}/trimmed
+if [ -d "${file}" ]; then
+	folder: ${file} already exists"
+else
+	echo "create folder: ${file}"
+	mkdir ${file}
+fi
+
+#### create a shared qc folder between the reference genomes
+file=${dir_path}/qc
+if [ -d "${file}" ]; then
+	echo "folder: ${file} already exists"
+else
+	echo "create folder: ${file}"
+	mkdir ${file}
 fi
 
 #### make directories to keep qc, sams, bams, stitch, beagle, results
 declare -a folders=(${dir_path}/${ref_gen} 
-                    ${dir_path}/${ref_gen}/qc
                     ${dir_path}/${ref_gen}/sams
                     ${dir_path}/${ref_gen}/bams
                     ${dir_path}/${ref_gen}/stitch
-                    ${dir_path}/${ref_gen}/beagle
                     ${dir_path}/${ref_gen}/results)
 for i in "${folders[@]}"
 do
-    file=${i}
-    if [ -d ${file} ]; then
-        echo "folder: ${file} already exists"
-        rm -rf ${file}/*
-    else 
-        echo "create folder: ${file}"
-        mkdir ${file}
-    fi 
-    #### Creating extra folders for bams
-    if [ ${file} = ${dir_path}/${ref_gen}/bams ]; then
-        mkdir ${file}/metrics
-    fi
+	file=${i}
+	if [ -d ${file} ]; then
+		echo "folder: ${file} already exists"
+		rm -rf ${file}/*
+	else 
+		echo "create folder: ${file}"
+		mkdir ${file}
+	fi 
+	#### Creating extra folders for bams
+	if [ ${file} = ${dir_path}/${ref_gen}/bams ]; then
+		mkdir ${file}/metrics
+	fi
 done
 
 END=$(date +%s)
@@ -78,18 +94,20 @@ echo "----------------- Check and build conda environment ------------------"
 echo "----------------------------------------------------------------------"
 START=$(date +%s)
 python -m conda
-if [ $? != 0 ]; then
-    wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-    bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
-    rm Miniconda3-latest-Linux-x86_64.sh
+has_conda=$(echo $?)
+if [ ${has_conda} != 0 ]; then
+	wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+	bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/miniconda3
+	rm Miniconda3-latest-Linux-x86_64.sh
 fi
 source activate hs_rats
-if [ $? != 0 ]; then
-    source activate base
-    conda env create -n hs_rats --file ${code}/software/hs_rats_conda_env.yml
-    source activate hs_rats
+has_conda_env=$(echo $?)
+if [ ${has_conda_env} != 0 ]; then
+	source activate base
+	conda create -y -n hs_rats --file ${code}/software/hs_rats_conda_env.yml
+	source activate hs_rats
 fi
-conda update --all
+conda update --all -y
 
 END=$(date +%s)
 echo "Check and build conda environment, time elapsed: $(( $END - $START )) seconds"
@@ -110,16 +128,16 @@ START=$(date +%s)
 
 #### This block handles the original sample sheet format.
 if [ ! -f "${dir_path}/demux/sample_sheet.csv" ]; then
-    source activate hs_rats
-    #### extract the corresponding sample barcode metadata
-    python3 ${code}/separate_metadata.py \
-        ${original_sample_sheet} \
-        ${dir_path}/demux
-    conda deactivate
+	source activate hs_rats
+	#### extract the corresponding sample barcode metadata
+	python3 ${code}/separate_metadata.py \
+		${original_sample_sheet} \
+		${dir_path}/demux
+	conda deactivate
 fi
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
-   sleep 60
+	sleep 60
 done
 END=$(date +%s)
 echo "Separate metadata base on library, time elapsed: $(( $END - $START )) seconds"
@@ -145,47 +163,36 @@ EOF
 Sample_IDs() { python3 -c "${Sample_IDs_py}" "$@"; }
 current_metadata=${dir_path}/demux/sample_sheet.csv
 
-#### get bam file list for STITCH
+#### get bam file list and sample name list for STITCH
 if [ -f "${dir_path}/${ref_gen}/bamlist" ]; then
-   echo "rm file: ${dir_path}/${ref_gen}/bamlist"
-   rm ${dir_path}/${ref_gen}/bamlist
+	echo "rm file: ${dir_path}/${ref_gen}/bamlist"
+	rm ${dir_path}/${ref_gen}/bamlist
 fi
 echo "create file: ${dir_path}/${ref_gen}/bamlist"
 touch ${dir_path}/${ref_gen}/bamlist
 
+if [ -f "${dir_path}/${ref_gen}/sampleName" ]; then
+	echo "rm file: ${dir_path}/${ref_gen}/sampleName"
+	rm ${dir_path}/${ref_gen}/sampleName
+fi
+echo "create file: ${dir_path}/${ref_gen}/sampleName"
+touch ${dir_path}/${ref_gen}/sampleName
+
 bams_dirs=$(cat ${PREV_BAMS})
 for bams_dir in ${bams_dirs[@]}; do
-  bam_fs=$(ls ${bams_dir}/*_sorted_mkDup.bam)
-  for bam_f in ${bam_fs[@]}; do
-    echo ${bam_f} >> ${dir_path}/${ref_gen}/bamlist
-  done
+	bam_fs=$(ls ${bams_dir}/*_sorted_mkDup.bam)
+	for bam_f in ${bam_fs[@]}; do
+		echo ${bam_f} >> ${dir_path}/${ref_gen}/bamlist
+		sample_id=$(echo ${bam_f} | rev | cut -d '/' -f 1 | cut -d '_' -f 3- | rev)
+		echo ${sample_id} >> ${dir_path}/${ref_gen}/sampleName
+	done
 done
 
 current_sample_ids=$(Sample_IDs ${current_metadata})
 
 for current_sample_id in ${current_sample_ids[@]}; do
-    echo "${dir_path}/${ref_gen}/bams/${current_sample_id}_sorted_mkDup.bam" >> ${dir_path}/${ref_gen}/bamlist
-done
-
-#### get sample name list for STITCH
-if [ -f "${dir_path}/${ref_gen}/sampleName" ]; then
-   echo "rm file: ${dir_path}/${ref_gen}/sampleName"
-   rm ${dir_path}/${ref_gen}/sampleName
-fi
-echo "create file: ${dir_path}/${ref_gen}/sampleName"
-touch ${dir_path}/${ref_gen}/sampleName
-
-previous_flow_cells_metadatas=$(cat ${PREV_METADATA})
-for metadata in ${previous_flow_cells_metadatas[@]}; do
-  sample_ids=$(Sample_IDs ${metadata})
-  for sample_id in ${sample_ids[@]}; do
-    echo ${sample_id} >> ${dir_path}/${ref_gen}/sampleName
-  done
-done
-
-current_sample_ids=$(Sample_IDs ${current_metadata})
-for sample_id in ${current_sample_ids[@]}; do
-  echo ${sample_id} >> ${dir_path}/${ref_gen}/sampleName
+	echo "${dir_path}/${ref_gen}/bams/${current_sample_id}_sorted_mkDup.bam" >> ${dir_path}/${ref_gen}/bamlist
+	echo ${current_sample_id} >> ${dir_path}/${ref_gen}/sampleName
 done
 
 END=$(date +%s)

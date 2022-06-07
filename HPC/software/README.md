@@ -11,4 +11,4 @@ A list of software that are installed on your HPC system.
 
 ## Documentation  
 ### Before running the pipeline on HPC:
-1. Modify [software_location](software_location) based on the software installation on your HPC system
+1. Modify [software_location](software_location) based on the software installation absolute path on your HPC system

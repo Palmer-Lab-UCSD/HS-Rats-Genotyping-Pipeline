@@ -1,7 +1,6 @@
-# replace this line with flow cell directory  
+# replace this line with flow cell directory
 # replace this line with flow cell metadata
-# replace this line with sequencing data directory  
-# replace this line with reference genome  
-# replace this line with reference panels for STITCH  
-# replace this line with genetic map for BEAGLE  
-# replace this line with directory where you keep the code for the pipeline  
+# replace this line with sequencing data directory
+# replace this line with reference genome
+# replace this line with reference panels for STITCH
+# replace this line with directory where you keep the code for the pipeline

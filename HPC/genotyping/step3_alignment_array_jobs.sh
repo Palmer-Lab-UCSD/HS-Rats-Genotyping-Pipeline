@@ -1,10 +1,7 @@
 #!/bin/bash
 
 #### read in declared PBS environment variables
-pipeline_arguments=${ARG}
-software=${software}
 ncpu=${ppn}
-java_mem=${java_mem}
 
 #### extract info from argument files
 dir_path=$(head -n 1 ${pipeline_arguments} | tail -n 1)
@@ -23,8 +20,8 @@ samtools=$(awk 'BEGIN {count = 0} {if ($1 == "Samtools") {print $3; exit 0;} els
 java=$(awk 'BEGIN {count = 0} {if ($1 == "Java") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 picard=$(awk 'BEGIN {count = 0} {if ($1 == "Picard") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 if [ ${bwa} = "ERROR" ] || [ ${samtools} = "ERROR" ] || [ ${java} = "ERROR" ] || [ ${picard} = "ERROR" ] || [ ! -f ${bwa} ] || [ ! -f "${samtools}" ] || [ ! -f "${java}" ] || [ ! -f "${picard}" ]; then 
-    echo "Error: software_location" 
-    exit 1
+	echo "Error: software_location" 
+	exit 1
 fi
 
 cd $HOME
@@ -46,6 +43,7 @@ sample=$(echo ${sample_metadata} | cut -d ',' -f 1)
 
 #### a customized command to extract the header of the fastq.gz file
 #### this to gather the register group info that bwa mem needs
+source activate hs_rats
 zhead_py=$(cat <<'EOF'
 import sys, gzip
 gzf = gzip.GzipFile(sys.argv[1], 'rb')
@@ -53,10 +51,10 @@ outFile = sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout
 numLines = 0
 maxLines = int(sys.argv[2])
 for line in gzf:
-    if numLines >= maxLines:
-        sys.exit(0)
-    outFile.write(line)
-    numLines += 1
+	if numLines >= maxLines:
+		sys.exit(0)
+	outFile.write(line)
+	numLines += 1
 EOF
 )
 zhead() { python -c "${zhead_py}" "$@"; }
@@ -73,23 +71,23 @@ sample_barcode=$(cut -d ',' -f 5 <<< ${sample_metadata})
 
 echo "----------------------------------------------------------------------"
 echo "${bwa} mem -aM -t ${ncpu} "
-echo " -R \"@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode0}\" "
+echo " -R \"@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}\" "
 echo "  ${reference_genome} ${demux_data}/${fastq_prefix}_R1.fastq.gz "
 echo "  ${demux_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &"
 echo "----------------------------------------------------------------------"
 
 if [ ! -f "${demux_data}/${fastq_prefix}_R1.fastq.gz" ] || [ ! -f "${demux_data}/${fastq_prefix}_R2.fastq.gz" ]; then 
-    echo "Error: ${demux_data}/${fastq_prefix}_R1.fastq.gz or ${demux_data}/${fastq_prefix}_R2.fastq.gz doesn't exist. Check step2_demux output" 
-    exit 1
+	echo "Error: ${demux_data}/${fastq_prefix}_R1.fastq.gz or ${demux_data}/${fastq_prefix}_R2.fastq.gz doesn't exist. Check step2_demux output" 
+	exit 1
 fi
 
 ${bwa} mem -aM -t ${ncpu}\
-  -R "@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}" \
-  ${reference_genome} ${demux_data}/${fastq_prefix}_R1.fastq.gz \
-  ${demux_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &
+	-R "@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}" \
+	${reference_genome} ${demux_data}/${fastq_prefix}_R1.fastq.gz \
+	${demux_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
-   sleep 60
+	sleep 60
 done
 END=$(date +%s)
 echo "BWA map to reference, Time elapsed: $(( $END - $START )) seconds"
@@ -105,15 +103,15 @@ echo "-o ${bams_data}/${sample}_sorted.bam ${sams_data}/${sample}.sam"
 echo "----------------------------------------------------------------------"
 
 if [ ! -f "${sams_data}/${sample}.sam" ]; then 
-    echo "Error: ${sams_data}/${sample}.sam doesn't exist. Check step3_alignment output" 
-    exit 1
+	echo "Error: ${sams_data}/${sample}.sam doesn't exist. Check step3_alignment output" 
+	exit 1
 fi
 
 ${samtools} sort -@ ${ncpu} \
-   -o ${bams_data}/${sample}_sorted.bam ${sams_data}/${sample}.sam
+	-o ${bams_data}/${sample}_sorted.bam ${sams_data}/${sample}.sam
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
-   sleep 60
+	sleep 60
 done
 END=$(date +%s)
 echo "Convert to and sort BAM file, time elapsed: $(( $END - $START )) seconds"
@@ -134,15 +132,15 @@ echo "   --OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam & "
 echo "----------------------------------------------------------------------"
 
 ${java} -Xmx${java_mem} -XX:+AggressiveOpts -XX:+AggressiveHeap\
-   -jar ${picard} MarkDuplicates \
-   --INPUT ${bams_data}/${sample}_sorted.bam \
-   --REMOVE_DUPLICATES false \
-   --ASSUME_SORTED true \
-   --METRICS_FILE ${bams_data}/metrics/${sample}_sorted_mkDup_metrics.txt \
-   --OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam &
+	-jar ${picard} MarkDuplicates \
+	--INPUT ${bams_data}/${sample}_sorted.bam \
+	--REMOVE_DUPLICATES false \
+	--ASSUME_SORTED true \
+	--METRICS_FILE ${bams_data}/metrics/${sample}_sorted_mkDup_metrics.txt \
+	--OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam &
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
-   sleep 60
+	sleep 60
 done
 END=$(date +%s)
 echo "Mark duplicates, time elapsed: $(( $END - $START )) seconds"
@@ -159,7 +157,7 @@ echo "----------------------------------------------------------------------"
 ${samtools} index ${bams_data}/${sample}_sorted_mkDup.bam ${bams_data}/${sample}_sorted_mkDup.bai
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
-   sleep 60
+	sleep 60
 done
 END=$(date +%s)
 echo "Index alignments, time elapsed: $(( $END - $START )) seconds"
@@ -167,8 +165,8 @@ echo "Index alignments, time elapsed: $(( $END - $START )) seconds"
 ############################# clean up directory ###############################
 #### clean up directory
 if [ -f "${sams_data}/${sample}.sam" ] && [ -f "${bams_data}/${sample}_sorted.bam" ] && [ -f "${bams_data}/${sample}_sorted_mkDup.bam" ] && [ -f "${bams_data}/${sample}_sorted_mkDup.bai" ]; then
-   rm ${sams_data}/${sample}.sam
-   rm ${bams_data}/${sample}_sorted.bam
+	rm ${sams_data}/${sample}.sam
+	rm ${bams_data}/${sample}_sorted.bam
 else
-   echo -e "ERROR: something went wrong during SAM->BAM, BAM->sorted_BAM, or sorted_BAM->sorted_mkDup_BAM for ${sample}"
+	echo -e "ERROR: something went wrong during SAM->BAM, BAM->sorted_BAM, or sorted_BAM->sorted_mkDup_BAM for ${sample}"
 fi

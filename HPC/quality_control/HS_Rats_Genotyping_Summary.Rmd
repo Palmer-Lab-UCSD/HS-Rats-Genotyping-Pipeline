@@ -148,8 +148,6 @@ bscols(
 ## Reference Data  
 Reference genome for alignment: `r gsub("^.*/", "", pipeline_arguments$V1[4])`  
 STITCH variant calling reference panel: `r gsub("^.*/", "", pipeline_arguments$V1[5])`  
-BEAGLE imputation genetic map: `r gsub("^.*/", "", pipeline_arguments$V1[6])`  
-
 
 <!-- Section 3 -->
 # Demultiplex Results  
@@ -597,29 +595,29 @@ STITCH polymorphic SNPs: MAF > 0.005
 
 </center>
 
-## BEAGLE SNPs Hardy–Weinberg P value vs. minor allele frequency  
-X axis: SNPs minor allele frequency on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
-Y axis: SNPs -log10(Hardy–Weinberg P value) on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
+## STITCH SNPs Hardy–Weinberg P value vs. minor allele frequency  
+X axis: SNPs minor allele frequency on genotypes called by STITCH and imputed by stitch (extract using plink2)  
+Y axis: SNPs -log10(Hardy–Weinberg P value) on genotypes called by STITCH and imputed by stitch (extract using plink2)  
 The effects on the called genotypes' reliability due to the heterozygote and rare-homozygote clusters of the genotype calling algorithm.  
 <center>
-![Figure 15: BEAGLE SNPs Hardy–Weinberg P value vs minor allele frequency](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_SNPs_hwe_vs_maf.png")`){#id .class width=60% height=60%}
+![Figure 15: STITCH SNPs Hardy–Weinberg P value vs minor allele frequency](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_SNPs_hwe_vs_maf.png")`){#id .class width=60% height=60%}
 
 </center>
 
-## BEAGLE polymorphic SNPs Hardy–Weinberg P value vs. minor allele frequency  
-X axis: SNPs minor allele frequency on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
-Y axis: SNPs -log10(Hardy–Weinberg P value) on genotypes called by STITCH and imputed by BEAGLE (extract using plink2)  
+## STITCH polymorphic SNPs Hardy–Weinberg P value vs. minor allele frequency  
+X axis: SNPs minor allele frequency on genotypes called by STITCH and imputed by stitch (extract using plink2)  
+Y axis: SNPs -log10(Hardy–Weinberg P value) on genotypes called by STITCH and imputed by stitch (extract using plink2)  
 The effects on the called genotypes' reliability due to the heterozygote and rare-homozygote clusters of the genotype calling algorithm.   
-BEAGLE polymorphic SNPs: MAF > 0.005
+STITCH polymorphic SNPs: MAF > 0.005
 <center>
-![Figure 16: BEAGLE polymorphic SNPs Hardy–Weinberg P value vs minor allele frequency ](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_poly_SNPs_hwe_vs_maf.png")`){#id .class width=60% height=60%}
+![Figure 16: STITCH polymorphic SNPs Hardy–Weinberg P value vs minor allele frequency ](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_poly_SNPs_hwe_vs_maf.png")`){#id .class width=60% height=60%}
 
 </center>
 
-## QC for BEAGLE sample albino coat color  
+## QC for STITCH sample albino coat color  
 Quality control on albino coat color based on the genotype at chromosome1:151097606 for each sample.  
 ```{r albino_color_outliers, echo=FALSE, message=FALSE, warning=FALSE}
-albino_outliers <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
+albino_outliers <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
                         header=TRUE,  strip.white=TRUE,sep=",")
 ```
 
@@ -684,19 +682,19 @@ bscols(
 )
 ```
 
-## BEAGLE genotypes PCA plots  
+## STITCH genotypes PCA plots  
 This shows the diversity of the genotypes of the population.  
 We want to avoid clustering due to batch or some other variations.  
 <center>
-![Figure 17: BEAGLE genotypes PC1 vs. PC2 colored by library prep](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC2_vs_PC1_Library_ID.png")`){#id .class width=55% height=55%} 
+![Figure 17: STITCH genotypes PC1 vs. PC2 colored by library prep](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_PC2_vs_PC1_Library_ID.png")`){#id .class width=55% height=55%} 
 
-![Figure 18: BEAGLE genotypes PC1 vs. PC2 colored by project name](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC2_vs_PC1_Sample_Project.png")`){#id .class width=60% height=60%} 
+![Figure 18: STITCH genotypes PC1 vs. PC2 colored by project name](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_PC2_vs_PC1_Sample_Project.png")`){#id .class width=60% height=60%} 
 
-![Figure 19: BEAGLE genotypes PC1 vs. PC2 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC2_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
+![Figure 19: STITCH genotypes PC1 vs. PC2 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_PC2_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
 
-![Figure 20: BEAGLE genotypes PC1 vs. PC3 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC3_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
+![Figure 20: STITCH genotypes PC1 vs. PC3 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_PC3_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
 
-![Figure 21: BEAGLE genotypes PC1 vs. PC4 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_sample_PC4_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
+![Figure 21: STITCH genotypes PC1 vs. PC4 colored by family](`r paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_sample_PC4_vs_PC1_Family.png")`){#id .class width=55% height=55%} 
 
 </center>
 
@@ -730,7 +728,7 @@ QC_sample_heterozygosity_rate <- read.table(paste0(dir_path, "/", ref,"/results/
 QC_sample_heterozygosity_rate <- subset(QC_sample_heterozygosity_rate, select = c("Sample_ID", "Library_ID", "Sample_het_rate", "QC_sample_heterozygosity_rate"))
 genotype_log <- merge(genotype_log, QC_sample_heterozygosity_rate, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
 
-QC_coatcolor_albino <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/beagle_result/after_beagle_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
+QC_coatcolor_albino <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
                         header=TRUE,  strip.white=TRUE,sep=",")
 QC_coatcolor_albino <- subset(QC_coatcolor_albino, select = c("Sample_ID", "coatcolor", "GT_albino_coatcolor_snp", "QC_coatcolor_albino"))
 genotype_log <- merge(genotype_log, QC_coatcolor_albino, by.x=c("Sample_ID", "coatcolor"), by.y=c("Sample_ID", "coatcolor"), all=F)
@@ -848,22 +846,10 @@ STITCH(
                       method = "diploid",
     reference_haplotype_file = refHap,
        reference_legend_file = refLgd,
-                           K = 16,
-                 niterations = 1,
+                           K = 8,
+                 niterations = 2,
                         nGen = 100,
       )
-```
-8. BEAGLE Imputation  
-Software used: [BEAGLE `r unique(software[software$V1 == "Beagle", ]$V2)`](https://faculty.washington.edu/browning/beagle/b4_1.html)  
-Command used:  
-```
-java -jar beagle.27Jan18.7e1.jar \
-    gt=chr${ch}_stitch.vcf.gz \
-    gprobs=true \
-    ne=150 \
-    nthreads=24 \
-    map=${genetic_map}/chr${ch}_beagle.map \
-    out=chr${ch}_bgl
 ```
 
 <!-- Section 9 -->
@@ -909,22 +895,3 @@ bcftools view -m2 -M2 -v snps -r ${ch} -Oz -o founders_chr${ch}.vcf.gz \
 ```
 bcftools convert -h founders_chr${ch} founders_chr${ch}.vcf.gz
 ```
-
-## Preparation for BEAGLE imputation genetic map
-HS rat genetic map:```/projects/ps-palmer/reference_genomes/rat/genetic_map_by_Mike/HS_Rat_Genetic_Map/predicted_cM_SNParray/map_files```  
-
-Citation: Littrell, J., S.-W. Tsaih, A. Baud, P. Rastas, L. Solberg-Woods et al., 2018 A High-Resolution Genetic Map for the Laboratory Rat. G3 (Bethesda) 8: 2241–2248. doi:10.1534/g3.118.200187   
-
-Use the following R code to reorganize the genetic map for BEAGLE.  
-```
-for(c in c(1:20, "X")){
-    fp<- paste(fp, "map_files/chr", sep="")
-    mp<- cbind(chr=paste("chr",c,sep=""), snp=paste("chr",c,"_",mp[,1],sep=""), 
-        mp[,c(3,1)])
-    write.table(mp, file=paste("/beagle_map/chr",c,"_beagle.mp",sep=""),
-        row.names=FALSE, col.names=FALSE, quote=FALSE)
-}
-```
-Example:  
-Before: ```40990 0.490095 4.58974178576291```  
-After: ```chr1 chr1_40990 4.58974178576291 40990```

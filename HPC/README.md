@@ -3,7 +3,7 @@
 # HPC
 ## Source code for HS rats pipeline on HPC
 :information_source: :information_source: :information_source:  **INFOMATION** :information_source: :information_source: :information_source:    
-This folder contains the complete pipeline code that utilizes HPC's different schedulers' array jobs feature to achieve parallelization. You may want to visit the pipeline flow [here](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline/blob/main/assets/HS_Rats_Genotyping_Pipeline_Design.pdf).
+This folder contains the complete pipeline code that utilizes HPC's different schedulers' array jobs feature to achieve parallelization. You may want to visit the pipeline flow [here](https://github.com/Palmer-Lab-UCSD/HS-Rats-Genotyping-Pipeline/blob/main/assets/HS_Rats_Lc-WGS_Genotyping_Pipeline_Design.pdf).
 
 ## Contents
 **[submission_TSCC_PBS.sh](submission_TSCC_PBS.sh)**  
@@ -16,8 +16,7 @@ Line 2: Flow cell metadata
 Line 3: Sequencing data directory  
 Line 4: Reference genome  
 Line 5: Reference panels for STITCH  
-Line 6: Genetic map for BEAGLE  
-Line 7: Directory where you keep the code for the pipeline  
+Line 6: Directory where you keep the code for the pipeline  
 
 **[previous_flow_cells_metadata](previous_flow_cells_metadata)**  
 Paths to previous flow cells' metadata.  
