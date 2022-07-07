@@ -83,3 +83,75 @@ echo "Demultiplex, time elapsed: $(( $END - $START )) seconds"
 #### START and END keep track of how much time were used for thie process.
 #### The while loop makes sure all steps in this process are done before
 #### entering next process.
+
+sed 1d ${sample_sheet} | while read sample_metadata
+do
+	echo "----------------------------------------------------------------------"
+	echo "-------------------  Adapter Trimming with BBduk ---------------------"
+	echo "----------------------------------------------------------------------"
+	START=$(date +%s)
+	Sample_ID=$(echo ${sample_metadata} | tail -n 1 | cut -d ',' -f1)
+	pre_trim_fastq_R1=$(ls ${demux_dir}/fastq/${Sample_ID}*_R1.fastq.gz)
+	pre_trim_fastq_R2=$(ls ${demux_dir}/fastq/${Sample_ID}*_R2.fastq.gz)
+
+	echo "----------------------------------------------------------------------"
+	echo "${BBMap}/bbduk.sh "
+	echo "ref=${BBMap}/resources/adapters.fa \ "
+	echo "in1=${pre_trim_fastq_R1}"
+	echo "in2=${pre_trim_fastq_R2}"
+	echo "out1=${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz "
+	echo "out2=${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz "
+	echo "ktrim=r k=23 mink=11 hdist=1 trimpolyg=50 tpe tbo "
+	echo "----------------------------------------------------------------------"
+
+	${BBMap}/bbduk.sh \
+		ref=${BBMap}/resources/adapters.fa \
+		in1=${pre_trim_fastq_R1} \
+		in2=${pre_trim_fastq_R2} \
+		out1=${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz \
+		out2=${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz \
+		ktrim=r k=23 mink=11 hdist=1 trimpolyg=50 tpe tbo
+
+	while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
+		sleep 60
+	done
+	END=$(date +%s)
+	echo "BBduk adapter trimming, time elapsed: $(( $END - $START )) seconds"
+
+
+	echo "----------------------------------------------------------------------"
+	echo "-------------  Quality, length Trimming with Cutadapt ----------------"
+	echo "----------------------------------------------------------------------"
+	START=$(date +%s)
+
+	post_trim_fastq_R1=${trimmed_dir}/${Sample_ID}_trimmed_R1.fastq.gz
+	post_trim_fastq_R2=${trimmed_dir}/${Sample_ID}_trimmed_R2.fastq.gz
+
+	echo "----------------------------------------------------------------------"
+	echo "cutadapt -q 5 "
+	echo "--minimum-length 70 --pair-filter=any"
+	echo "-o ${post_trim_fastq_R1} "
+	echo "-p ${post_trim_fastq_R2}  "
+	echo "${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz "
+	echo "${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz"
+	echo "----------------------------------------------------------------------"
+
+	source activate hs_rats
+	cutadapt -q 5 \
+		--minimum-length 70 --pair-filter=any \
+		-o ${post_trim_fastq_R1} \
+		-p ${post_trim_fastq_R2} \
+		${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz
+	conda deactivate
+
+	while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
+		sleep 60
+	done
+
+	rm ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz
+	rm ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz
+
+	END=$(date +%s)
+	echo "Cutadapt quality and length trimming, time elapsed: $(( $END - $START )) seconds"
+
+done
