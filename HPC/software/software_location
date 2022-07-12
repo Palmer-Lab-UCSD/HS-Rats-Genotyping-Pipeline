@@ -9,3 +9,4 @@ FastQC	0.11.9	#/absolute/path
 Qualimap	2.2.1	#/absolute/path
 Plink2	2	#/absolute/path
 Plink	1.07	#/absolute/path
+BBMap	38.94	#/absolute/path
