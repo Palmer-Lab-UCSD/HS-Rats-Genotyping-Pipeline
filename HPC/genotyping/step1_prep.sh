@@ -153,10 +153,7 @@ Sample_IDs_py=$(cat <<'EOF'
 import pandas as pd
 import sys
 metadata = pd.read_csv(sys.argv[1], dtype=str)
-metadata_cols = metadata.columns.tolist()
-metadata = metadata[metadata["strain"] == "Heterogenous stock"].reset_index(drop=True)
-Sample_ID = metadata[["library_name", "rfid"]].agg('_'.join, axis=1)
-Sample_ID = '\n'.join(Sample_ID.tolist())
+Sample_ID = '\n'.join(metadata["Sample_ID"].tolist())
 sys.stdout.write(Sample_ID)
 EOF
 )
@@ -178,7 +175,7 @@ fi
 echo "create file: ${dir_path}/${ref_gen}/sampleName"
 touch ${dir_path}/${ref_gen}/sampleName
 
-bams_dirs=$(cat ${PREV_BAMS})
+bams_dirs=$(cat ${previous_flow_cells_bams})
 for bams_dir in ${bams_dirs[@]}; do
 	bam_fs=$(ls ${bams_dir}/*_sorted_mkDup.bam)
 	for bam_f in ${bam_fs[@]}; do

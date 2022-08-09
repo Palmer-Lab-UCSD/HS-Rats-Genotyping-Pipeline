@@ -9,11 +9,13 @@ fastq_dir=$(head -n 3 ${pipeline_arguments} | tail -n 1)
 
 #### construct more variables based on extracted info
 demux_dir=${dir_path}/demux
+trimmed_dir=${dir_path}/trimmed
 
 #### extract software locations from argument files
 java=$(awk 'BEGIN {count = 0} {if ($1 == "Java") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 fgbio=$(awk 'BEGIN {count = 0} {if ($1 == "Fgbio") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [${java} = "ERROR" ] || [ ${fgbio} = "ERROR" ] || [ ! -f "${java}" ] || [ ! -f "${fgbio}" ]; then 
+BBMap=$(awk 'BEGIN {count = 0} {if ($1 == "BBMap") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
+if [ ${java} = "ERROR" ] || [ ${fgbio} = "ERROR" ] || [ ${BBMap} = "ERROR" ] || [ ! -f "${java}" ] || [ ! -f "${fgbio}" ] || [ ! -d "${BBMap}" ]; then
 	echo "Error: software_location" 
 	exit 1
 fi

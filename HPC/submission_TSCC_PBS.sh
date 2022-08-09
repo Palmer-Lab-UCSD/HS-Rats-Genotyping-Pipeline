@@ -60,7 +60,6 @@ num_sample_py=$(cat <<'EOF'
 import pandas as pd
 import sys
 origial_metadata = pd.read_csv(sys.argv[1], dtype=str)
-metadata_cols = origial_metadata.columns.tolist()
 origial_metadata = origial_metadata[origial_metadata["strain"] == "Heterogenous stock"].reset_index(drop=True)
 sys.stdout.write(str(len(origial_metadata["rfid"])))
 EOF
