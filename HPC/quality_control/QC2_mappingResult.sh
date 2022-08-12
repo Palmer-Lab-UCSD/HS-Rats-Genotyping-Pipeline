@@ -156,8 +156,6 @@ flowcell_ID_py=$(cat <<'EOF'
 import pandas as pd
 import sys
 metadata = pd.read_csv(sys.argv[1], dtype=str)
-metadata_cols = metadata.columns.tolist()
-metadata = metadata[metadata["strain"] == "Heterogenous stock"].reset_index(drop=True)
 sys.stdout.write(str(metadata["runid"].unique()[0]))
 EOF
 )

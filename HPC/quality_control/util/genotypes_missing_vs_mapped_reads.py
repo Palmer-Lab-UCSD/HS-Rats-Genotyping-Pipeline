@@ -19,10 +19,12 @@ def help():
 	sys.exit()
 
 def read_mkDup_metrics(file):
-	mkDup_metrics = pd.read_csv(file, delimiter="\t", dtype=str,usecols=["Sample_ID", "READ_PAIRS_EXAMINED"])
-	mkDup_metrics["Library_ID"] = mkDup_metrics["Sample_ID"].apply(lambda x: x.split('_')[0])
+	mkDup_metrics = pd.read_csv(file, delimiter="\t", dtype=str,usecols=["Sample_ID", "READ_PAIRS_EXAMINED", "UNPAIRED_READS_EXAMINED"])
+	mkDup_metrics["Library_ID"] = mkDup_metrics["Sample_ID"].apply(lambda x: '_'.join(x.split('_')[:-1]))
 	mkDup_metrics["READ_PAIRS_EXAMINED"] = pd.to_numeric(mkDup_metrics["READ_PAIRS_EXAMINED"])
-	mkDup_metrics["READ_PAIRS_EXAMINED"] = mkDup_metrics["READ_PAIRS_EXAMINED"]/1e6
+	mkDup_metrics["UNPAIRED_READS_EXAMINED"] = pd.to_numeric(mkDup_metrics["UNPAIRED_READS_EXAMINED"])
+	mkDup_metrics["MAPPED_READS"] = mkDup_metrics["UNPAIRED_READS_EXAMINED"] + mkDup_metrics["READ_PAIRS_EXAMINED"]*2
+	mkDup_metrics["MAPPED_READS"] = mkDup_metrics["MAPPED_READS"]/1e6
 	return mkDup_metrics
 
 def read_sample_missing(file):
@@ -49,7 +51,7 @@ def plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_r
 	axHisty.yaxis.set_major_formatter(nullfmt)
 	# the main plot:
 	sns.scatterplot(ax=axHist, data=sample_missing_mkDup_metrics,
-						x="READ_PAIRS_EXAMINED", y="Sample_missing_rate", alpha=0.5)
+						x="MAPPED_READS", y="Sample_missing_rate", alpha=0.5)
 	axHist.set(xlabel="Mapped Reads (million)", ylabel="Missing Rate")
 	axHist.axhline(y=sample_missing_rate_threshold, color="red", linestyle="--", label="Missing Rate Threshold: " +
 		str(sample_missing_rate_threshold) + " (" + str(len(sample_missing_mkDup_metrics[sample_missing_mkDup_metrics["QC_sample_missing_rate"] == "fail"]))+
@@ -60,7 +62,7 @@ def plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_r
 	axHist.legend()
 	# sub plots
 	sns.histplot(ax=axHistx, data=sample_missing_mkDup_metrics,
-				x="READ_PAIRS_EXAMINED", bins=100, kde=True)
+				x="MAPPED_READS", bins=100, kde=True)
 	axHistx.set(xlabel="", ylabel="Number of Samples", title="Sample Missing Rate vs Mapped Reads")
 	sns.histplot(ax=axHisty, data=sample_missing_mkDup_metrics, y="Sample_missing_rate", bins=100, kde=True)
 	axHisty.set(xlabel="Number of Samples", ylabel="",title="")
@@ -96,14 +98,14 @@ if __name__=="__main__":
 	sample_missing_mkDup_metrics = pd.merge(sample_missing, mkDup_metrics, on=["Sample_ID"], how="left")
 	sample_missing_rate_threshold = 0.1
 	sample_missing_mkDup_metrics["QC_sample_missing_rate"] = sample_missing_mkDup_metrics["Sample_missing_rate"].apply(lambda x: "pass" if x < sample_missing_rate_threshold else "fail")
-	mapped_reads_threshold = 1
-	sample_missing_mkDup_metrics["QC_mapped_reads"] = sample_missing_mkDup_metrics["READ_PAIRS_EXAMINED"].apply(lambda x: "pass" if x >=mapped_reads_threshold else "fail")
+	mapped_reads_threshold = 2
+	sample_missing_mkDup_metrics["QC_mapped_reads"] = sample_missing_mkDup_metrics["MAPPED_READS"].apply(lambda x: "pass" if x >=mapped_reads_threshold else "fail")
 
 	plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_rate_threshold, mapped_reads_threshold, output_file_prefix + "sample_missing_vs_mapped_reads.png")
 
 	QC_sample_missing_rate_threshold_10 = sample_missing_mkDup_metrics[["Sample_ID", "Library_ID", "Sample_missing_rate", "QC_sample_missing_rate"]]
 	QC_sample_missing_rate_threshold_10.to_csv(output_file_prefix+"QC_sample_missing_rate_threshold_10percent.csv", sep=',', index=False)
 
-	QC_mapped_reads_threshold_1M = sample_missing_mkDup_metrics[["Sample_ID", "Library_ID", "READ_PAIRS_EXAMINED", "QC_mapped_reads"]]
-	QC_mapped_reads_threshold_1M = QC_mapped_reads_threshold_1M.rename(columns={"READ_PAIRS_EXAMINED": "Mapped_reads"})
-	QC_mapped_reads_threshold_1M.to_csv(output_file_prefix+"QC_mapped_reads_threshold_1M.csv", sep=',', index=False)
+	QC_mapped_reads_threshold_1M = sample_missing_mkDup_metrics[["Sample_ID", "Library_ID", "MAPPED_READS", "QC_mapped_reads"]]
+	QC_mapped_reads_threshold_1M = QC_mapped_reads_threshold_1M.rename(columns={"MAPPED_READS": "Mapped_reads"})
+	QC_mapped_reads_threshold_1M.to_csv(output_file_prefix+"QC_mapped_reads_threshold_2M.csv", sep=',', index=False)

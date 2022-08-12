@@ -142,55 +142,56 @@ done
 END=$(date +%s)
 echo "Separate metadata base on library, time elapsed: $(( $END - $START )) seconds"
 
+########## comment this out. It would be better to let user generate their own bamlist and samplename
 
-echo "----------------------------------------------------------------------"
-echo "--------- Generates bamlist and samplename files for STITCH ----------"
-echo "----------------------------------------------------------------------"
-START=$(date +%s)
-#### a customized command to extract the sample id from metadata
-source activate hs_rats
-Sample_IDs_py=$(cat <<'EOF'
-import pandas as pd
-import sys
-metadata = pd.read_csv(sys.argv[1], dtype=str)
-Sample_ID = '\n'.join(metadata["Sample_ID"].tolist())
-sys.stdout.write(Sample_ID)
-EOF
-)
-Sample_IDs() { python3 -c "${Sample_IDs_py}" "$@"; }
-current_metadata=${dir_path}/demux/sample_sheet.csv
+# echo "----------------------------------------------------------------------"
+# echo "--------- Generates bamlist and samplename files for STITCH ----------"
+# echo "----------------------------------------------------------------------"
+# START=$(date +%s)
+# #### a customized command to extract the sample id from metadata
+# source activate hs_rats
+# Sample_IDs_py=$(cat <<'EOF'
+# import pandas as pd
+# import sys
+# metadata = pd.read_csv(sys.argv[1], dtype=str)
+# Sample_ID = '\n'.join(metadata["Sample_ID"].tolist())
+# sys.stdout.write(Sample_ID)
+# EOF
+# )
+# Sample_IDs() { python3 -c "${Sample_IDs_py}" "$@"; }
+# current_metadata=${dir_path}/demux/sample_sheet.csv
 
-#### get bam file list and sample name list for STITCH
-if [ -f "${dir_path}/${ref_gen}/bamlist" ]; then
-	echo "rm file: ${dir_path}/${ref_gen}/bamlist"
-	rm ${dir_path}/${ref_gen}/bamlist
-fi
-echo "create file: ${dir_path}/${ref_gen}/bamlist"
-touch ${dir_path}/${ref_gen}/bamlist
+# #### get bam file list and sample name list for STITCH
+# if [ -f "${dir_path}/${ref_gen}/bamlist" ]; then
+# 	echo "rm file: ${dir_path}/${ref_gen}/bamlist"
+# 	rm ${dir_path}/${ref_gen}/bamlist
+# fi
+# echo "create file: ${dir_path}/${ref_gen}/bamlist"
+# touch ${dir_path}/${ref_gen}/bamlist
 
-if [ -f "${dir_path}/${ref_gen}/sampleName" ]; then
-	echo "rm file: ${dir_path}/${ref_gen}/sampleName"
-	rm ${dir_path}/${ref_gen}/sampleName
-fi
-echo "create file: ${dir_path}/${ref_gen}/sampleName"
-touch ${dir_path}/${ref_gen}/sampleName
+# if [ -f "${dir_path}/${ref_gen}/sampleName" ]; then
+# 	echo "rm file: ${dir_path}/${ref_gen}/sampleName"
+# 	rm ${dir_path}/${ref_gen}/sampleName
+# fi
+# echo "create file: ${dir_path}/${ref_gen}/sampleName"
+# touch ${dir_path}/${ref_gen}/sampleName
 
-bams_dirs=$(cat ${previous_flow_cells_bams})
-for bams_dir in ${bams_dirs[@]}; do
-	bam_fs=$(ls ${bams_dir}/*_sorted_mkDup.bam)
-	for bam_f in ${bam_fs[@]}; do
-		echo ${bam_f} >> ${dir_path}/${ref_gen}/bamlist
-		sample_id=$(echo ${bam_f} | rev | cut -d '/' -f 1 | cut -d '_' -f 3- | rev)
-		echo ${sample_id} >> ${dir_path}/${ref_gen}/sampleName
-	done
-done
+# bams_dirs=$(cat ${previous_flow_cells_bams})
+# for bams_dir in ${bams_dirs[@]}; do
+# 	bam_fs=$(ls ${bams_dir}/*_sorted_mkDup.bam)
+# 	for bam_f in ${bam_fs[@]}; do
+# 		echo ${bam_f} >> ${dir_path}/${ref_gen}/bamlist
+# 		sample_id=$(echo ${bam_f} | rev | cut -d '/' -f 1 | cut -d '_' -f 3- | rev)
+# 		echo ${sample_id} >> ${dir_path}/${ref_gen}/sampleName
+# 	done
+# done
 
-current_sample_ids=$(Sample_IDs ${current_metadata})
+# current_sample_ids=$(Sample_IDs ${current_metadata})
 
-for current_sample_id in ${current_sample_ids[@]}; do
-	echo "${dir_path}/${ref_gen}/bams/${current_sample_id}_sorted_mkDup.bam" >> ${dir_path}/${ref_gen}/bamlist
-	echo ${current_sample_id} >> ${dir_path}/${ref_gen}/sampleName
-done
+# for current_sample_id in ${current_sample_ids[@]}; do
+# 	echo "${dir_path}/${ref_gen}/bams/${current_sample_id}_sorted_mkDup.bam" >> ${dir_path}/${ref_gen}/bamlist
+# 	echo ${current_sample_id} >> ${dir_path}/${ref_gen}/sampleName
+# done
 
-END=$(date +%s)
-echo "Generates bamlist and samplename files for STITCH, time elapsed: $(( $END - $START )) seconds"
+# END=$(date +%s)
+# echo "Generates bamlist and samplename files for STITCH, time elapsed: $(( $END - $START )) seconds"

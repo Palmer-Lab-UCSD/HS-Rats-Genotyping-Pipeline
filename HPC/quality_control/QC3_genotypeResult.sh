@@ -308,39 +308,6 @@ conda deactivate
 END=$(date +%s)
 echo "STITCH PCA Time elapsed: $(( $END - $START )) seconds"
 
-echo "----------------------- STITCH Albino coat color ------------------------"
-#### Albino coat color QC after STITCH based on SNP 1:151097606
-START=$(date +%s)
-${plink1_9} --bfile ${stitch_result}/plink/${vcf_prefix}_stitch --snp 1:151097606 \
-	--alleleACGT  --recode --out ${stitch_result}/plink/${vcf_prefix}_stitch_albino_1_151097606
-
-echo "------------------ Quality Control on albino coat color -----------------"
-source activate hs_rats
-python3 ${util_code}/genotypes_coatcolor_albino.py \
-	-p ${stitch_result}/plink/${vcf_prefix}_stitch_albino_1_151097606.ped \
-	-m ${genotype_result}/${vcf_prefix}_metadata.csv \
-	-o ${stitch_result}/after_stitch_
-conda deactivate
-END=$(date +%s)
-echo "STITCH Albino coat color QC Time elapsed: $(( $END - $START )) seconds"
-
-echo "--------------------- STITCH Pairwise concordance -----------------------"
-#### Pairwise concordance check
-START=$(date +%s)
-${bcftools} gtcheck -r chr1 -e 0 ${stitch_path}/${vcf_prefix}_stitch.vcf.gz > ${stitch_result}/genotypes_bcftools_gtcheck
-grep '^DC' ${stitch_result}/genotypes_bcftools_gtcheck > ${stitch_result}/genotypes_bcftools_gtcheck_DC
-rm ${stitch_result}/genotypes_bcftools_gtcheck
-
-echo "----------------- pairwise concordance check after STITCH ---------------"
-source activate hs_rats
-python3 ${util_code}/genotypes_pairwise_concordance.py \
-	-d ${stitch_result}/genotypes_bcftools_gtcheck_DC \
-	-o ${stitch_result}/after_stitch_
-conda deactivate
-END=$(date +%s)
-echo "STITCH Pairwise concordance check Time elapsed: $(( $END - $START )) seconds"
-
-
 echo "------------------------- RMarkdown genotype summary report ------------------------"
 START=$(date +%s)
 source activate hs_rats

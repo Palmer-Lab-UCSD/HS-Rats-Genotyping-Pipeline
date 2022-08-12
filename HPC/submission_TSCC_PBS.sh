@@ -25,15 +25,8 @@ source activate hs_rats
 num_lib_py=$(cat <<'EOF'
 import pandas as pd
 import sys
-origial_metadata = pd.read_csv(sys.argv[1], dtype=str)
-metadata_cols = origial_metadata.columns.tolist()
-origial_metadata = origial_metadata[origial_metadata["strain"] == "Heterogenous stock"].reset_index(drop=True)
-Library_ID = ""
-for col in metadata_cols:
-	if "library_name" == col.lower():
-		Library_ID = col
-		break
-sys.stdout.write(str(len(set(origial_metadata[Library_ID]))))
+metadata = pd.read_csv(sys.argv[1], dtype=str)
+sys.stdout.write(str(len(metadata["Library_ID"].unique())))
 EOF
 )
 num_lib() { python3 -c "${num_lib_py}" "$@"; }
@@ -59,9 +52,8 @@ source activate hs_rats
 num_sample_py=$(cat <<'EOF'
 import pandas as pd
 import sys
-origial_metadata = pd.read_csv(sys.argv[1], dtype=str)
-origial_metadata = origial_metadata[origial_metadata["strain"] == "Heterogenous stock"].reset_index(drop=True)
-sys.stdout.write(str(len(origial_metadata["rfid"])))
+metadata = pd.read_csv(sys.argv[1], dtype=str)
+sys.stdout.write(str(len(metadata["Sample_ID"].unique())))
 EOF
 )
 num_sample() { python3 -c "${num_sample_py}" "$@"; }
@@ -172,7 +164,7 @@ echo "QC2_mapping_results: ${QC2_MAPPINGRESULT_JOB}"
 ppn=12
 QC3_GENOTYPERESULT_JOB=$(qsub -q hotel -N genotype_stat -l nodes=1:ppn=${ppn},walltime=168:00:00 \
                               -j oe -k oe -m ae -M ${email} \
-                              -V -v pipeline_arguments="${pipeline_arguments}",previous_flow_cells_metadata="${previous_flow_cells_metadata}",bamlist="${bamlist}"ppn="${ppn}",software="${software}" \
+                              -V -v pipeline_arguments="${pipeline_arguments}",previous_flow_cells_metadata="${previous_flow_cells_metadata}",bamlist="${bamlist}",ppn="${ppn}",software="${software}" \
                               -W depend=afterokarray:${STEP6_VARIANT_FILTERING_id} \
                               ${code}/quality_control/QC3_genotypeResult.sh)
 echo "QC3_genotype_results: ${QC3_GENOTYPERESULT_JOB}"

@@ -202,26 +202,26 @@ This is extracted from the DuplicationMetrics of Picard MarkDuplicates function.
 </center>
 
 ## QC for mapped reads
-```{r QC_mapped_reads_threshold_1M, echo=FALSE, message=FALSE, warning=FALSE}
-QC_mapped_reads_threshold_1M <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_mapped_reads_threshold_1M.csv"), stringsAsFactors=FALSE,
+```{r QC_mapped_reads_threshold_2M, echo=FALSE, message=FALSE, warning=FALSE}
+QC_mapped_reads_threshold_2M <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_mapped_reads_threshold_2M.csv"), stringsAsFactors=FALSE,
                         header=TRUE,  strip.white=TRUE,sep=",")
 ```
 Quality control based on the number of mapped reads for each sample.  
 Threshold:  
 
-* Number of mapped reads < 1 million: fail (`r length(QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads == "fail", ]$Sample_ID)` sample(s))  
-* Number of mapped reads >= 1 million: pass (`r length(QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads == "pass", ]$Sample_ID)` sample(s))  
+* Number of mapped reads < 2 million: fail (`r length(QC_mapped_reads_threshold_2M[QC_mapped_reads_threshold_2M$QC_mapped_reads == "fail", ]$Sample_ID)` sample(s))  
+* Number of mapped reads >= 2 million: pass (`r length(QC_mapped_reads_threshold_2M[QC_mapped_reads_threshold_2M$QC_mapped_reads == "pass", ]$Sample_ID)` sample(s))  
 
 The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
-```{r QC_mapped_reads_threshold_1M_display, echo=FALSE, message=FALSE, warning=FALSE}
-QC_mapped_reads_threshold_1M <- merge(QC_mapped_reads_threshold_1M, metadata, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
-QC_mapped_reads_threshold_1M <- QC_mapped_reads_threshold_1M[QC_mapped_reads_threshold_1M$QC_mapped_reads != "pass", ]
-row.names(QC_mapped_reads_threshold_1M) <- NULL
-QC_mapped_reads_threshold_1M <- subset(QC_mapped_reads_threshold_1M, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor","Mapped_reads", "QC_mapped_reads"))
-QC_mapped_reads_threshold_1M$Sample_ID <- as.character(QC_mapped_reads_threshold_1M$Sample_ID)
-QC_mapped_reads_threshold_1M %>% 
+```{r QC_mapped_reads_threshold_2M_display, echo=FALSE, message=FALSE, warning=FALSE}
+QC_mapped_reads_threshold_2M <- merge(QC_mapped_reads_threshold_2M, metadata, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
+QC_mapped_reads_threshold_2M <- QC_mapped_reads_threshold_2M[QC_mapped_reads_threshold_2M$QC_mapped_reads != "pass", ]
+row.names(QC_mapped_reads_threshold_2M) <- NULL
+QC_mapped_reads_threshold_2M <- subset(QC_mapped_reads_threshold_2M, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor","Mapped_reads", "QC_mapped_reads"))
+QC_mapped_reads_threshold_2M$Sample_ID <- as.character(QC_mapped_reads_threshold_2M$Sample_ID)
+QC_mapped_reads_threshold_2M %>% 
   download_this(
-    output_name = "QC_mapped_reads_threshold_1M",
+    output_name = "QC_mapped_reads_threshold_2M",
     output_extension = ".csv",
     button_label = "Download data as csv",
     button_type = "default",
@@ -229,20 +229,20 @@ QC_mapped_reads_threshold_1M %>%
     icon = "fa fa-save",
     csv2 = FALSE
   )
-QC_mapped_reads_threshold_1M <- SharedData$new(QC_mapped_reads_threshold_1M)
+QC_mapped_reads_threshold_2M <- SharedData$new(QC_mapped_reads_threshold_2M)
 sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
                      borderRight = "1px solid #eee")
 bscols(
   widths = c(2, 10),
   list(
-    filter_checkbox("Sex", "Sex", QC_mapped_reads_threshold_1M, ~sex),
-    filter_checkbox("Coat Color", "Coat Color", QC_mapped_reads_threshold_1M, ~coatcolor),
-    filter_checkbox("Library Prep", "Library Prep", QC_mapped_reads_threshold_1M, ~Library_ID),
-    filter_slider("Mapped Read Pairs (million)", "Mapped Read Pairs (million)", QC_mapped_reads_threshold_1M, ~Mapped_reads, width = "100%"),
-    filter_select("Flow Cell", "Flow Cell", QC_mapped_reads_threshold_1M, ~runid),
-    filter_select("Project Name", "Project Name", QC_mapped_reads_threshold_1M, ~Sample_Project)
+    filter_checkbox("Sex", "Sex", QC_mapped_reads_threshold_2M, ~sex),
+    filter_checkbox("Coat Color", "Coat Color", QC_mapped_reads_threshold_2M, ~coatcolor),
+    filter_checkbox("Library Prep", "Library Prep", QC_mapped_reads_threshold_2M, ~Library_ID),
+    filter_slider("Mapped Read Pairs (million)", "Mapped Read Pairs (million)", QC_mapped_reads_threshold_2M, ~Mapped_reads, width = "100%"),
+    filter_select("Flow Cell", "Flow Cell", QC_mapped_reads_threshold_2M, ~runid),
+    filter_select("Project Name", "Project Name", QC_mapped_reads_threshold_2M, ~Sample_Project)
   ),
-  reactable(QC_mapped_reads_threshold_1M, 
+  reactable(QC_mapped_reads_threshold_2M, 
     defaultSortOrder = "desc",
     columns=list(
       Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
@@ -614,74 +614,6 @@ STITCH polymorphic SNPs: MAF > 0.005
 
 </center>
 
-## QC for STITCH sample albino coat color  
-Quality control on albino coat color based on the genotype at chromosome1:151097606 for each sample.  
-```{r albino_color_outliers, echo=FALSE, message=FALSE, warning=FALSE}
-albino_outliers <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
-                        header=TRUE,  strip.white=TRUE,sep=",")
-```
-
-Coat color statistics in this population:  
-```{r coatcolor_stats, echo=FALSE, eval=TRUE, message=FALSE, include=T, results='asis'}
-for(i in 1:length(unique(metadata$coatcolor))){
-    cat("  \n")
-    cat(paste0("* Number of ", unique(metadata$coatcolor)[i], " samples: ", length(metadata[metadata$coatcolor == unique(metadata$coatcolor)[i],]$coatcolor),"\  "))
-    cat("  \n")
-}
-```
-
-Threshold:
-
-* Genotype at 1:151097606 (Albino: TT, Non-Albino: not TT): pass (`r length(albino_outliers[albino_outliers$QC_coatcolor_albino == "pass", ]$Sample_ID)` sample(s))  
-* Genotype at 1:151097606 (Albino: not TT, Non-Albino: TT): fail (`r length(albino_outliers[albino_outliers$QC_coatcolor_albino == "fail", ]$Sample_ID)` sample(s))  
-
-The table below only shows the samples that failed this quality control. For a comprehensive quality control result, please visit section 7.  
-```{r albino_color_outliers_display, echo=FALSE, message=FALSE, warning=FALSE}
-albino_outliers <- merge(albino_outliers, metadata, by.x=c("Sample_ID", "coatcolor"), by.y=c("Sample_ID", "coatcolor"), all=F)
-albino_outliers <- albino_outliers[albino_outliers$QC_coatcolor_albino != "pass", ]
-row.names(albino_outliers) <- NULL
-albino_outliers <- subset(albino_outliers, select = c("Sample_ID", "runid", "Library_ID", "Sample_Project", "sex", "coatcolor", "GT_albino_coatcolor_snp", "QC_coatcolor_albino"))
-albino_outliers$Sample_ID <- as.character(albino_outliers$Sample_ID)
-albino_outliers %>% 
-  download_this(
-    output_name = "albino_outliers",
-    output_extension = ".csv",
-    button_label = "Download data as csv",
-    button_type = "default",
-    has_icon = TRUE,
-    icon = "fa fa-save",
-    csv2 = FALSE
-  )
-albino_outliers <- SharedData$new(albino_outliers)
-sticky_style <- list(position = "sticky", left = 0, background = "#fff", zIndex = 1,
-                     borderRight = "1px solid #eee")
-bscols(
-  widths = c(2, 10),
-  list(
-    filter_checkbox("Sex", "Sex", albino_outliers, ~sex),
-    filter_checkbox("Coat Color", "Coat Color", albino_outliers, ~coatcolor),
-    filter_checkbox("Library Prep", "Library Prep", albino_outliers, ~Library_ID),
-    filter_select("Flow Cell", "Flow Cell", albino_outliers, ~runid),
-    filter_select("Project Name", "Project Name", albino_outliers, ~Sample_Project)
-  ),
-  reactable(albino_outliers, 
-    defaultSortOrder = "desc",
-    columns=list(
-      Sample_ID=colDef(name="Sample ID", defaultSortOrder = "desc", 
-        style = sticky_style, headerStyle = sticky_style),
-      runid=colDef(name="Flow Cell"),
-      Sample_Project=colDef(name="Project Name"),
-      Library_ID=colDef(name="Library Prep"),
-      sex=colDef(name="Sex"),
-      coatcolor=colDef(name="Coat Color"),
-      QC_coatcolor_albino=colDef(name="QC Coat Color Albino")
-    ),
-    highlight = TRUE,
-    striped = TRUE,
-  )
-)
-```
-
 ## STITCH genotypes PCA plots  
 This shows the diversity of the genotypes of the population.  
 We want to avoid clustering due to batch or some other variations.  
@@ -708,7 +640,7 @@ metadata <- read.table(Sys.glob(file.path(paste0(dir_path, "/", ref, "/results/g
 metadata <- metadata[metadata$strain == "Heterogenous stock",]
 metadata <- subset(metadata, select = c("Sample_ID", "Sample_Name", "runid", "Library_ID", "Sample_Project", "Mother", "Father", "sex", "coatcolor"))
 
-QC_mapped_reads <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_mapped_reads_threshold_1M.csv"), stringsAsFactors=FALSE,
+QC_mapped_reads <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/after_mkDup_QC_mapped_reads_threshold_2M.csv"), stringsAsFactors=FALSE,
                         header=TRUE,  strip.white=TRUE,sep=",")
 genotype_log <- merge(metadata, QC_mapped_reads, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
 
@@ -727,11 +659,6 @@ QC_sample_heterozygosity_rate <- read.table(paste0(dir_path, "/", ref,"/results/
                         header=TRUE,  strip.white=TRUE,sep=",")
 QC_sample_heterozygosity_rate <- subset(QC_sample_heterozygosity_rate, select = c("Sample_ID", "Library_ID", "Sample_het_rate", "QC_sample_heterozygosity_rate"))
 genotype_log <- merge(genotype_log, QC_sample_heterozygosity_rate, by.x=c("Sample_ID", "Library_ID"), by.y=c("Sample_ID", "Library_ID"), all=F)
-
-QC_coatcolor_albino <- read.table(paste0(dir_path, "/", ref,"/results/genotype_result/stitch_result/after_stitch_QC_coatcolor_albino_snp_1_151097606.csv"), stringsAsFactors=FALSE,
-                        header=TRUE,  strip.white=TRUE,sep=",")
-QC_coatcolor_albino <- subset(QC_coatcolor_albino, select = c("Sample_ID", "coatcolor", "GT_albino_coatcolor_snp", "QC_coatcolor_albino"))
-genotype_log <- merge(genotype_log, QC_coatcolor_albino, by.x=c("Sample_ID", "coatcolor"), by.y=c("Sample_ID", "coatcolor"), all=F)
 
 row.names(genotype_log) <- NULL
 genotype_log$Sample_ID <- as.character(genotype_log$Sample_ID)
@@ -757,7 +684,6 @@ bscols(
     filter_checkbox("QC Sample Missing Rate", "QC Sample Missing Rate", genotype_log, ~QC_sample_missing_rate),
     filter_checkbox("QC Sample Heterozygosity Rate", "QC Sample Heterozygosity Rate", genotype_log, ~QC_sample_heterozygosity_rate),
     filter_checkbox("QC Sex", "QC Sex",  genotype_log, ~QC_sex),
-    filter_checkbox("QC coatcolor albino", "QC coatcolor albino", genotype_log, ~QC_coatcolor_albino),
     filter_select("Library Prep", "Library Prep", genotype_log, ~Library_ID),
     filter_select("Flow Cell", "Flow Cell", genotype_log, ~runid),
     filter_select("Project Name", "Project Name", genotype_log, ~Sample_Project)
@@ -776,7 +702,6 @@ bscols(
       QC_sex=colDef(name="QC Sex"),
       QC_sample_missing_rate=colDef(name="QC Sample Missing Rate"),
       QC_sample_heterozygosity_rate=colDef(name="QC Sample Heterozygosity Rate"),
-      QC_coatcolor_albino=colDef(name="QC coatcolor albino")
     ),
     highlight = TRUE,
     striped = TRUE,
