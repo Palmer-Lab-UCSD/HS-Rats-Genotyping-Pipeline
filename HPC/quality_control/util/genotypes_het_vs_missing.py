@@ -34,13 +34,15 @@ def read_sample_missing(file):
 	return sample_missing
 
 def QC_sample_heterozygosity_rate(row, het_mean, het_std):
-	if row["Sample_het_rate"] > het_mean+3*het_std and row["Sample_missing_rate"] >= 0.1:
+	if row["Sample_het_rate"] > het_mean+3*het_std and row["Sample_missing_rate"] > 0.1:
 		return "fail"
-	elif row["Sample_het_rate"] < het_mean-3*het_std and row["Sample_missing_rate"] >= 0.1:
+	elif row["Sample_het_rate"] < het_mean-3*het_std and row["Sample_missing_rate"] > 0.1:
 		return "fail"
-	elif row["Sample_het_rate"] > het_mean+3*het_std and row["Sample_missing_rate"] < 0.1:
+	elif row["Sample_het_rate"] > het_mean+3*het_std and row["Sample_missing_rate"] <= 0.1:
 		return "suspect"
-	elif row["Sample_het_rate"] < het_mean-3*het_std and row["Sample_missing_rate"] < 0.1:
+	elif row["Sample_het_rate"] < het_mean-3*het_std and row["Sample_missing_rate"] <= 0.1:
+		return "suspect"
+	elif row["Sample_missing_rate"] > 0.1:
 		return "suspect"
 	else:
 		return "pass"

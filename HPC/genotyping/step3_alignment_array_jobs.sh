@@ -10,7 +10,7 @@ reference_genome=$(head -n 4 ${pipeline_arguments} | tail -n 1)
 #### construct more variables based on extracted info
 ref_gen=$(echo ${reference_genome} | rev | cut -d '/' -f 1 | cut -d '.' -f 2- | rev)
 sample_sheet=${dir_path}/demux/sample_sheet.csv
-demux_data=${dir_path}/demux/fastq
+trimmed_data=${dir_path}/trimmed
 sams_data=${dir_path}/${ref_gen}/sams
 bams_data=${dir_path}/${ref_gen}/bams
 
@@ -60,8 +60,8 @@ EOF
 zhead() { python -c "${zhead_py}" "$@"; }
 
 #### construct the register group for bwa
-fastq_prefix=$(ls ${demux_data}/${sample}*_R1.fastq.gz | rev | cut -d'/' -f 1 | cut -d '_' -f 2- | rev)
-fastq_header=$(zhead ${demux_data}/${fastq_prefix}_R1.fastq.gz 1)
+fastq_prefix=$(ls ${trimmed_data}/${sample}*_R1.fastq.gz | rev | cut -d'/' -f 1 | cut -d '_' -f 2- | rev)
+fastq_header=$(zhead ${trimmed_data}/${fastq_prefix}_R1.fastq.gz 1)
 instrument_name=$(cut -d ':' -f 1 <<< ${fastq_header} | cut -d '@' -f 2)
 run_id=$(cut -d ':' -f 2 <<< ${fastq_header})
 flowcell_id=$(cut -d ':' -f 3 <<< ${fastq_header})
@@ -72,19 +72,19 @@ sample_barcode=$(cut -d ',' -f 5 <<< ${sample_metadata})
 echo "----------------------------------------------------------------------"
 echo "${bwa} mem -aM -t ${ncpu} "
 echo " -R \"@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}\" "
-echo "  ${reference_genome} ${demux_data}/${fastq_prefix}_R1.fastq.gz "
-echo "  ${demux_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &"
+echo "  ${reference_genome} ${trimmed_data}/${fastq_prefix}_R1.fastq.gz "
+echo "  ${trimmed_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &"
 echo "----------------------------------------------------------------------"
 
-if [ ! -f "${demux_data}/${fastq_prefix}_R1.fastq.gz" ] || [ ! -f "${demux_data}/${fastq_prefix}_R2.fastq.gz" ]; then 
-	echo "Error: ${demux_data}/${fastq_prefix}_R1.fastq.gz or ${demux_data}/${fastq_prefix}_R2.fastq.gz doesn't exist. Check step2_demux output" 
+if [ ! -f "${trimmed_data}/${fastq_prefix}_R1.fastq.gz" ] || [ ! -f "${trimmed_data}/${fastq_prefix}_R2.fastq.gz" ]; then 
+	echo "Error: ${trimmed_data}/${fastq_prefix}_R1.fastq.gz or ${trimmed_data}/${fastq_prefix}_R2.fastq.gz doesn't exist. Check step2_demux output" 
 	exit 1
 fi
 
 ${bwa} mem -aM -t ${ncpu}\
 	-R "@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}" \
-	${reference_genome} ${demux_data}/${fastq_prefix}_R1.fastq.gz \
-	${demux_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &
+	${reference_genome} ${trimmed_data}/${fastq_prefix}_R1.fastq.gz \
+	${trimmed_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
 	sleep 60
