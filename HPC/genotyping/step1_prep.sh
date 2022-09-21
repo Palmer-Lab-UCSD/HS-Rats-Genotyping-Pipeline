@@ -11,9 +11,6 @@ code=$(head -n 6 ${pipeline_arguments} | tail -n 1)
 original_sample_sheet=$(head -n 2 ${pipeline_arguments} | tail -n 1)
 ref_gen=$(head -n 4 ${pipeline_arguments} | tail -n 1 | rev | cut -d '/' -f 1 | cut -d '.' -f 2- | rev)
 
-#### construct more variables based on extracted info
-code=${code}/genotyping/util
-
 #### set current directory to be home
 cd $HOME
 
@@ -121,7 +118,7 @@ START=$(date +%s)
 #### several small sample sheets by combination of "pcr_barcode", "library",
 #### and "full_run_id"
 #### !!!!!!!!!!!!!!!!!!!!!!
-#### The ${code}/separate_metadata.py probably needs modifications
+#### The ${code}/genotyping/util/separate_metadata.py probably needs modifications
 #### since original sample sheet always
 #### comes in with DIFFERENT format.
 #### !!!!!!!!!!!!!!!!!!!!!!
@@ -130,7 +127,7 @@ START=$(date +%s)
 if [ ! -f "${dir_path}/demux/sample_sheet.csv" ]; then
 	source activate hs_rats
 	#### extract the corresponding sample barcode metadata
-	python3 ${code}/separate_metadata.py \
+	python3 ${code}/genotyping/util/separate_metadata.py \
 		${original_sample_sheet} \
 		${dir_path}/demux
 	conda deactivate

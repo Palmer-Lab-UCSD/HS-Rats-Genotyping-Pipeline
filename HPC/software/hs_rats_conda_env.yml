@@ -2,12 +2,8 @@ name: hs_rats
 channels:
   - conda-forge
   - bioconda
-  - defaults
-  - r
 dependencies:
-  - pandas
-  - python=3.9.6
-  - multiqc
-  - r-essentials
   - r-stitch
   - seaborn
+  - multiqc
+  - r-essentials
