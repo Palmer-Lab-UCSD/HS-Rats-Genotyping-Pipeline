@@ -12,7 +12,7 @@ stitch_path=${dir_path}/${ref_gen}/stitch
 
 #### extract software locations from argument files
 bcftools=$(awk 'BEGIN {count = 0} {if ($1 == "BCFTools") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [ ${bcftools} = "ERROR" ] || [ ! -f "${bcftools}" ]; then
+if [ ${bcftools} = "ERROR" ] || [ ! -f ${bcftools} ]; then
 	echo "Error: software_location" 
 	exit 1
 fi

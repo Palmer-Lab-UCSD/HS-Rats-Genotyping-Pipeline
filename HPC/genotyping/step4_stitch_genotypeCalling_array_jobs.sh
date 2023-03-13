@@ -5,7 +5,6 @@ ncpu=${ppn}
 
 #### extract info from argument files
 dir_path=$(head -n 1 ${pipeline_arguments} | tail -n 1)
-reference_panels_loc=$(head -n 5 ${pipeline_arguments} | tail -n 1)
 reference_genome=$(head -n 4 ${pipeline_arguments} | tail -n 1)
 code=$(head -n 6 ${pipeline_arguments} | tail -n 1)
 
@@ -15,7 +14,7 @@ stitch_path=${dir_path}/${ref_gen}/stitch
 code=${code}/genotyping/util
 
 bcftools=$(awk 'BEGIN {count = 0} {if ($1 == "BCFTools") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [ ${bcftools} = "ERROR" ] || [ ! -f "${bcftools}" ]; then
+if [ ${bcftools} = "ERROR" ] || [ ! -f ${bcftools} ]; then
     echo "Error: software_location" 
     exit 1
 fi
@@ -32,7 +31,6 @@ echo "------------------  Genotype Calling using STITCH   ------------------"
 echo "----------------------------------------------------------------------"
 START=$(date +%s)
 
-reference_panels=${reference_panels_loc}_${chr}
 tempdir_chr=${tempdir}
 start_line=${PBS_ARRAYID}
 ((end_line=start_line+1))

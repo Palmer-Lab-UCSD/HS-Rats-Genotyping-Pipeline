@@ -5,7 +5,7 @@
  
 ## Contents
 **[QC1_multiqc_trimming.sh](QC1_multiqc_trimming.sh)**  
-Run FastQC on fastq files before and after trimming and MultiQC on the results. Resutls are separated by Riptide library preparation.  
+Run [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/) on fastq files before and after trimming and [MultiQC](https://multiqc.info) on sequences after demultiplex and after trimming. Resutls are separated by library.  
 
 **[QC2_mappingResult.sh](QC2_mappingResult.sh)**  
 Visualization for demultiplex and alignment result  

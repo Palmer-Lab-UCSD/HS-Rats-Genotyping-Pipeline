@@ -19,7 +19,7 @@ bwa=$(awk 'BEGIN {count = 0} {if ($1 == "BWA") {print $3; exit 0;} else count +=
 samtools=$(awk 'BEGIN {count = 0} {if ($1 == "Samtools") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 java=$(awk 'BEGIN {count = 0} {if ($1 == "Java") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 picard=$(awk 'BEGIN {count = 0} {if ($1 == "Picard") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [ ${bwa} = "ERROR" ] || [ ${samtools} = "ERROR" ] || [ ${java} = "ERROR" ] || [ ${picard} = "ERROR" ] || [ ! -f ${bwa} ] || [ ! -f "${samtools}" ] || [ ! -f "${java}" ] || [ ! -f "${picard}" ]; then 
+if [ ${bwa} = "ERROR" ] || [ ${samtools} = "ERROR" ] || [ ${java} = "ERROR" ] || [ ${picard} = "ERROR" ] || [ ! -f ${bwa} ] || [ ! -f ${samtools} ] || [ ! -f ${java} ] || [ ! -f ${picard} ]; then 
 	echo "Error: software_location" 
 	exit 1
 fi
@@ -73,10 +73,10 @@ echo "----------------------------------------------------------------------"
 echo "${bwa} mem -aM -t ${ncpu} "
 echo " -R \"@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}\" "
 echo "  ${reference_genome} ${trimmed_data}/${fastq_prefix}_R1.fastq.gz "
-echo "  ${trimmed_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &"
+echo "  ${trimmed_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam"
 echo "----------------------------------------------------------------------"
 
-if [ ! -f "${trimmed_data}/${fastq_prefix}_R1.fastq.gz" ] || [ ! -f "${trimmed_data}/${fastq_prefix}_R2.fastq.gz" ]; then 
+if [ ! -f ${trimmed_data}/${fastq_prefix}_R1.fastq.gz ] || [ ! -f ${trimmed_data}/${fastq_prefix}_R2.fastq.gz ]; then 
 	echo "Error: ${trimmed_data}/${fastq_prefix}_R1.fastq.gz or ${trimmed_data}/${fastq_prefix}_R2.fastq.gz doesn't exist. Check step2_demux output" 
 	exit 1
 fi
@@ -84,7 +84,7 @@ fi
 ${bwa} mem -aM -t ${ncpu}\
 	-R "@RG\tID:${instrument_name}.${run_id}.${flowcell_id}.${flowcell_lane}\tLB:${library_id}\tPL:ILLUMINA\tSM:${sample}\tPU:${flowcell_id}.${flowcell_lane}.${sample_barcode}" \
 	${reference_genome} ${trimmed_data}/${fastq_prefix}_R1.fastq.gz \
-	${trimmed_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam &
+	${trimmed_data}/${fastq_prefix}_R2.fastq.gz > ${sams_data}/${sample}.sam
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
 	sleep 60
@@ -102,7 +102,7 @@ echo "${samtools} sort -@ ${ncpu} "
 echo "-o ${bams_data}/${sample}_sorted.bam ${sams_data}/${sample}.sam"
 echo "----------------------------------------------------------------------"
 
-if [ ! -f "${sams_data}/${sample}.sam" ]; then 
+if [ ! -f ${sams_data}/${sample}.sam ]; then 
 	echo "Error: ${sams_data}/${sample}.sam doesn't exist. Check step3_alignment output" 
 	exit 1
 fi
@@ -128,7 +128,7 @@ echo "   --INPUT ${bams_data}/${sample}_sorted.bam "
 echo "   --REMOVE_DUPLICATES false "
 echo "   --ASSUME_SORTED true "
 echo "   --METRICS_FILE ${bams_data}/metrics/${sample}_sorted_mkDup_metrics.txt "
-echo "   --OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam & "
+echo "   --OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam"
 echo "----------------------------------------------------------------------"
 
 ${java} -Xmx${java_mem} -XX:+AggressiveOpts -XX:+AggressiveHeap\
@@ -137,7 +137,7 @@ ${java} -Xmx${java_mem} -XX:+AggressiveOpts -XX:+AggressiveHeap\
 	--REMOVE_DUPLICATES false \
 	--ASSUME_SORTED true \
 	--METRICS_FILE ${bams_data}/metrics/${sample}_sorted_mkDup_metrics.txt \
-	--OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam &
+	--OUTPUT ${bams_data}/${sample}_sorted_mkDup.bam
 
 while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
 	sleep 60
@@ -164,7 +164,7 @@ echo "Index alignments, time elapsed: $(( $END - $START )) seconds"
 
 ############################# clean up directory ###############################
 #### clean up directory
-if [ -f "${sams_data}/${sample}.sam" ] && [ -f "${bams_data}/${sample}_sorted.bam" ] && [ -f "${bams_data}/${sample}_sorted_mkDup.bam" ] && [ -f "${bams_data}/${sample}_sorted_mkDup.bai" ]; then
+if [ -f ${sams_data}/${sample}.sam ] && [ -f ${bams_data}/${sample}_sorted.bam ] && [ -f ${bams_data}/${sample}_sorted_mkDup.bam ] && [ -f ${bams_data}/${sample}_sorted_mkDup.bai ]; then
 	rm ${sams_data}/${sample}.sam
 	rm ${bams_data}/${sample}_sorted.bam
 else

@@ -21,7 +21,7 @@ bcftools=$(awk 'BEGIN {count = 0} {if ($1 == "BCFTools") {print $3; exit 0;} els
 plink2=$(awk 'BEGIN {count = 0} {if ($1 == "Plink2") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 plink1_9=$(awk 'BEGIN {count = 0} {if ($1 == "Plink") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 samtools=$(awk 'BEGIN {count = 0} {if ($1 == "Samtools") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [ ${bcftools} = "ERROR" ] || [ ${plink2} = "ERROR" ] || [ ${plink1_9} = "ERROR" ] || [ ${samtools} = "ERROR" ] || [ ! -f "${bcftools}" ] || [ ! -f "${plink2}" ] || [ ! -f "${plink1_9}" ] || [ ! -f ${samtools} ]; then
+if [ ${bcftools} = "ERROR" ] || [ ${plink2} = "ERROR" ] || [ ${plink1_9} = "ERROR" ] || [ ${samtools} = "ERROR" ] || [ ! -f ${bcftools} ] || [ ! -f ${plink2} ] || [ ! -f ${plink1_9} ] || [ ! -f ${samtools} ]; then
 	echo "Error: software_location" 
 	exit 1
 fi
@@ -204,16 +204,6 @@ python3 ${util_code}/genotypes_imputation_INFO.py -i ${stitch_result}/stitch_INF
 conda deactivate
 END=$(date +%s)
 echo "STITCH imputation INFO score Time elapsed: $(( $END - $START )) seconds"
-
-echo "-------------------- SNPs density plots after STITCH --------------------"
-#### SNPs density
-START=$(date +%s)
-source activate hs_rats
-python3 ${util_code}/genotypes_SNPs_density.py -b 1 -i ${stitch_result}/stitch_INFO \
-	-o ${stitch_result}/after_stitch_
-conda deactivate
-END=$(date +%s)
-echo "SNPs density after STITCH Time elapsed: $(( $END - $START )) seconds"
 
 echo "--------------------------- STITCH VCF -> plink -------------------------"
 #### STITCH VCF to plink binary file

@@ -33,7 +33,7 @@ def read_sample_missing(file):
 	sample_missing = sample_missing.rename(columns={"IID": "Sample_ID", "F_MISS": "Sample_missing_rate"})
 	return sample_missing
 
-def plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_rate_threshold, mapped_reads_threshold, output_file):
+def plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_rate_threshold, output_file):
 	nullfmt = NullFormatter()
 	# definitions for the axes
 	left, width = 0.1, 0.65
@@ -55,9 +55,6 @@ def plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_r
 	axHist.set(xlabel="Mapped Reads (million)", ylabel="Missing Rate")
 	axHist.axhline(y=sample_missing_rate_threshold, color="red", linestyle="--", label="Missing Rate Threshold: " +
 		str(sample_missing_rate_threshold) + " (" + str(len(sample_missing_mkDup_metrics[sample_missing_mkDup_metrics["QC_sample_missing_rate"] == "fail"]))+
-		" samples)")
-	axHist.axvline(x=mapped_reads_threshold, color="orange", linestyle="--", label="Mapped Reads Threshold: " +
-		str(mapped_reads_threshold) + " (" + str(len(sample_missing_mkDup_metrics[sample_missing_mkDup_metrics["QC_mapped_reads"] == "fail"]))+
 		" samples)")
 	axHist.legend()
 	# sub plots
@@ -98,14 +95,8 @@ if __name__=="__main__":
 	sample_missing_mkDup_metrics = pd.merge(sample_missing, mkDup_metrics, on=["Sample_ID"], how="left")
 	sample_missing_rate_threshold = 0.1
 	sample_missing_mkDup_metrics["QC_sample_missing_rate"] = sample_missing_mkDup_metrics["Sample_missing_rate"].apply(lambda x: "pass" if x < sample_missing_rate_threshold else "fail")
-	mapped_reads_threshold = 2
-	sample_missing_mkDup_metrics["QC_mapped_reads"] = sample_missing_mkDup_metrics["MAPPED_READS"].apply(lambda x: "pass" if x >=mapped_reads_threshold else "fail")
 
-	plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_rate_threshold, mapped_reads_threshold, output_file_prefix + "sample_missing_vs_mapped_reads.png")
+	plot_sample_missing_vs_mapped(sample_missing_mkDup_metrics, sample_missing_rate_threshold, output_file_prefix + "sample_missing_vs_mapped_reads.png")
 
 	QC_sample_missing_rate_threshold_10 = sample_missing_mkDup_metrics[["Sample_ID", "Library_ID", "Sample_missing_rate", "QC_sample_missing_rate"]]
 	QC_sample_missing_rate_threshold_10.to_csv(output_file_prefix+"QC_sample_missing_rate_threshold_10percent.csv", sep=',', index=False)
-
-	QC_mapped_reads_threshold_1M = sample_missing_mkDup_metrics[["Sample_ID", "Library_ID", "MAPPED_READS", "QC_mapped_reads"]]
-	QC_mapped_reads_threshold_1M = QC_mapped_reads_threshold_1M.rename(columns={"MAPPED_READS": "Mapped_reads"})
-	QC_mapped_reads_threshold_1M.to_csv(output_file_prefix+"QC_mapped_reads_threshold_2M.csv", sep=',', index=False)

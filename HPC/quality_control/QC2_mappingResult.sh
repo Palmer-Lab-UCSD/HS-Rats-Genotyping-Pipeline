@@ -169,3 +169,53 @@ Rscript ${code}/quality_control/HS_Rats_Genotyping_Summary.r \
 conda deactivate 
 END=$(date +%s)
 echo " RMarkdown genotype summary report  time elapsed: $(( $END - $START )) seconds"
+
+### potential solution for looking at alignment statistics
+if false; then
+touch ${dir_path}/results/mapping_result/total_reads
+touch ${dir_path}/results/mapping_result/mapped_reads
+touch ${dir_path}/results/mapping_result/duplicate_reads
+touch ${dir_path}/results/mapping_result/mapped_coverage
+touch ${dir_path}/results/mapping_result/mapped_coverage_whole_genome
+
+for (( line = 1; line <= 23; ++line )); do
+	chr_name=$(head -n ${line} ${chr_names} | tail -n 1)
+	touch ${dir_path}/results/mapping_result/mapped_reads_${chr_name}
+done
+
+source activate hs_rats
+for (( line = 1340; line <= 15566; ++line )); do
+	echo $line
+	bamfile=$(head -n ${line} ${bamlist} | tail -n 1)
+	prefix=$(echo ${bamfile} | rev | cut -d '/' -f 1 | cut -d '.' -f 2- | rev)
+	sample=$(head -n ${line} ${sampleName} | tail -n 1)
+
+	# mapped reads stats
+	${samtools} flagstat -@ ${ncpu} ${bamfile} > ${dir_path}/results/mapping_result/stats/${prefix}.flagstat &
+
+	${samtools} idxstats ${bamfile} > ${dir_path}/results/mapping_result/stats/${prefix}.idxstats &
+	
+	# mapped coverage stats
+	mosdepth --threads ${ncpu} --no-per-base --fasta ${reference_genome} --fast-mode ${dir_path}/results/mapping_result/stats/${prefix} ${bamfile}
+
+	# organize mapped reads stats
+	flagstat=$(ls ${dir_path}/results/mapping_result/stats/${sample}*.flagstat)
+	awk -v sample=${sample} -F" " '{if($4=="in") print sample "\t" $1}' ${flagstat} >> ${dir_path}/results/mapping_result/total_reads
+	awk -v sample=${sample} -F" " '{if($4=="mapped") print sample "\t" $1}' ${flagstat} >> ${dir_path}/results/mapping_result/mapped_reads
+	awk -v sample=${sample} -F" " '{if($4=="duplicates") print sample "\t" $1}' ${flagstat} >> ${dir_path}/results/mapping_result/duplicate_reads
+
+	idxstats=$(ls ${dir_path}/results/mapping_result/stats/${sample}*.idxstats)
+	for (( chr_line = 1; chr_line <= 23; ++chr_line )); do
+		chr_name=$(head -n ${chr_line} ${chr_names} | tail -n 1)
+		awk -v sample=${sample} -v chr_name=${chr_name} -F"\t" '{if($1==chr_name) print sample "\t" $3}' ${idxstats} >> ${dir_path}/results/mapping_result/mapped_reads_${chr_name}
+	done
+
+	# organize mapped coverage stats
+	mosdepth_summary=${dir_path}/results/mapping_result/stats/${prefix}.mosdepth.summary.txt
+	awk -v sample=${sample} -F"\t" '{ if($1 ~/NC_/) {le=le+$2;base=base+$3}} END {print sample "\t" le "\t" base}' ${mosdepth_summary} >> ${dir_path}/results/mapping_result/mapped_coverage
+	awk -v sample=${sample} -F"\t" '{ if($1 == "total") print sample "\t" $2 "\t" $3}' ${mosdepth_summary} >> ${dir_path}/results/mapping_result/mapped_coverage_whole_genome
+
+done
+conda deactivate
+
+fi

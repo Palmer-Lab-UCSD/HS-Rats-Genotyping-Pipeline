@@ -15,7 +15,7 @@ trimmed_dir=${dir_path}/trimmed
 java=$(awk 'BEGIN {count = 0} {if ($1 == "Java") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 fgbio=$(awk 'BEGIN {count = 0} {if ($1 == "Fgbio") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
 BBMap=$(awk 'BEGIN {count = 0} {if ($1 == "BBMap") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [ ${java} = "ERROR" ] || [ ${fgbio} = "ERROR" ] || [ ${BBMap} = "ERROR" ] || [ ! -f "${java}" ] || [ ! -f "${fgbio}" ] || [ ! -d "${BBMap}" ]; then
+if [ ${java} = "ERROR" ] || [ ${fgbio} = "ERROR" ] || [ ${BBMap} = "ERROR" ] || [ ! -f ${java} ] || [ ! -f ${fgbio} ] || [ ! -d ${BBMap} ]; then
 	echo "Error: software_location" 
 	exit 1
 fi
@@ -149,11 +149,16 @@ do
 	while [ "$(jobs -rp | wc -l)" -gt 0 ]; do
 		sleep 60
 	done
-
-	rm ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz
-	rm ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz
-
 	END=$(date +%s)
 	echo "Cutadapt quality and length trimming, time elapsed: $(( $END - $START )) seconds"
+
+	############################# clean up directory ###############################
+	#### clean up directory
+	if [ -f ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz ] && [ -f ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz ] && [ -f ${post_trim_fastq_R1} ] && [ -f ${post_trim_fastq_R2} ]; then
+		rm ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R1.fastq.gz
+		rm ${trimmed_dir}/${Sample_ID}_adapter_trimmed_R2.fastq.gz
+	else
+		echo -e "ERROR: something went wrong during demultiplex, or trimming for ${Sample_ID}"
+	fi
 
 done

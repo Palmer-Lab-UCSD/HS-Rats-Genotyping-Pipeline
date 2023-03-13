@@ -1,9 +1,14 @@
 import pandas as pd
 import sys
 
+# read in the metadata
 origial_metadata = pd.read_csv(sys.argv[1], dtype=str)
-metadata_cols = origial_metadata.columns.tolist()
+
+# filter for HS rats only
 origial_metadata = origial_metadata[origial_metadata['strain'] == 'Heterogenous stock'].reset_index(drop=True)
+
+# re-organize column names for Fgbio demultiplex
+metadata_cols = origial_metadata.columns.tolist()
 import_cols = {}
 for col in metadata_cols:
 	if 'rfid' == col.lower():
@@ -27,19 +32,7 @@ for col in metadata_cols:
 	elif 'pcr_barcode' == col.lower():
 		import_cols['PCR_Barcode'] = col
 		continue
-	elif 'father' == col.lower():
-		import_cols['Father'] = col
-		continue
-	elif 'mother' == col.lower():
-		import_cols['Mother'] = col
-		continue
-	elif 'dames' == col.lower():
-		import_cols['Mother'] = col
-		continue
-	elif 'sires' == col.lower():
-		import_cols['Father'] = col
-		continue
-for new_col in ['Father', 'Mother', 'Fastq_Files', 'Sample_Barcode', 'Sample_Project', 'Library_ID', 'Sample_Name']:
+for new_col in ['Fastq_Files', 'Sample_Barcode', 'Sample_Project', 'Library_ID', 'Sample_Name']:
 	if new_col not in import_cols.keys():
 		origial_metadata.insert(0, new_col, '')
 		print("ERROR: " + new_col + " doesn't exist")
@@ -47,8 +40,10 @@ for new_col in ['Father', 'Mother', 'Fastq_Files', 'Sample_Barcode', 'Sample_Pro
 		origial_metadata.insert(0, new_col, origial_metadata[import_cols[new_col]])
 temp_sample_ID = origial_metadata[[import_cols["Library_ID"], import_cols["Sample_Name"]]].agg('_'.join, axis=1)
 origial_metadata.insert(0, "Sample_ID", temp_sample_ID)
+# save it to sample_sheet.csv
 origial_metadata.to_csv(sys.argv[2]+"/sample_sheet.csv", index=False, sep=',')
 
+# seperate samples based on library to different SampleSheet.csv for demultiplex
 for unique in origial_metadata['Library_ID'].unique():
 	temp_metadata = origial_metadata[origial_metadata['Library_ID'] == unique].reset_index(drop=True)
 	if 'PCR_Barcode' not in import_cols.keys():

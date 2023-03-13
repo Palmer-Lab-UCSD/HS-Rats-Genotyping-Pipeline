@@ -27,8 +27,7 @@ def read_eigenvector(file):
 	return eigenvec
 
 def read_metadata(file):
-	metadata = pd.read_csv(file, delimiter=",", dtype=str, usecols=["Sample_ID", "Sample_Name", "Library_ID", "Sample_Project", "Mother", "Father", "sex", "coatcolor"])
-	metadata["Family"] = metadata.apply(lambda row: str(row["Father"])+str(row["Mother"]), axis=1)
+	metadata = pd.read_csv(file, delimiter=",", dtype=str, usecols=["Sample_ID", "Sample_Name", "Library_ID", "Sample_Project", "sex"])
 	return metadata
 
 def read_eigenvalue(file):
@@ -83,7 +82,7 @@ if __name__=="__main__":
 
 	eigenvec_metadata = pd.merge(eigenvector, metadata, on=["Sample_ID"], how="left")
 	for i in range(3):
-		for hue in ["Library_ID", "Sample_Project", "Family", "sex"]:
+		for hue in ["Library_ID", "Sample_Project", "sex"]:
 			plot_pca(eigenvec_metadata, eigenvalue,
 					"PC"+str(i+2), "PC1", hue, 
 					output_file_prefix+"sample_PC"+str(i+2)+"_vs_PC1_"+hue+".png")

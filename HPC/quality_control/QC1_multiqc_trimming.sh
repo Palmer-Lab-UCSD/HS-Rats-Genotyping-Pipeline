@@ -17,7 +17,7 @@ out_path=${dir_path}/qc/${library}
 
 #### extract software locations from argument files
 fastqc=$(awk 'BEGIN {count = 0} {if ($1 == "FastQC") {print $3; exit 0;} else count += 1} END {if (count == NR) {print "ERROR"}}' ${software})
-if [ ${fastqc} = "ERROR" ] || [ ! -f "${fastqc}" ]; then
+if [ ${fastqc} = "ERROR" ] || [ ! -f ${fastqc} ]; then
 	echo "Error: software_location" 
 	exit 1
 fi
@@ -31,7 +31,7 @@ echo "-------------------------------------------------------------------------"
 START=$(date +%s)
 
 #### Construct output directory 
-if [ -d "${out_path}" ]; then
+if [ -d ${out_path} ]; then
 	echo "clean folder: ${out_path}"
 	rm -rf ${out_path}/*
 else

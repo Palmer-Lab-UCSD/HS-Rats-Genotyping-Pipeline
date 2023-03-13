@@ -34,13 +34,13 @@ def read_sample_missing(file):
 	return sample_missing
 
 def QC_sample_heterozygosity_rate(row, het_mean, het_std):
-	if row["Sample_het_rate"] > het_mean+3*het_std and row["Sample_missing_rate"] > 0.1:
+	if row["Sample_het_rate"] > het_mean+4*het_std and row["Sample_missing_rate"] > 0.1:
 		return "fail"
-	elif row["Sample_het_rate"] < het_mean-3*het_std and row["Sample_missing_rate"] > 0.1:
+	elif row["Sample_het_rate"] < het_mean-4*het_std and row["Sample_missing_rate"] > 0.1:
 		return "fail"
-	elif row["Sample_het_rate"] > het_mean+3*het_std and row["Sample_missing_rate"] <= 0.1:
+	elif row["Sample_het_rate"] > het_mean+4*het_std and row["Sample_missing_rate"] <= 0.1:
 		return "suspect"
-	elif row["Sample_het_rate"] < het_mean-3*het_std and row["Sample_missing_rate"] <= 0.1:
+	elif row["Sample_het_rate"] < het_mean-4*het_std and row["Sample_missing_rate"] <= 0.1:
 		return "suspect"
 	elif row["Sample_missing_rate"] > 0.1:
 		return "suspect"
@@ -67,8 +67,8 @@ def plot_sample_het_vs_missing(sample_missing_het, het_mean, het_std, output_fil
 	sns.scatterplot(ax=axHist, data=sample_missing_het,
 						x="Sample_missing_rate", y="Sample_het_rate", alpha=0.5)
 	axHist.set(xlabel="Missing Rate", ylabel="Heterozygosity Rate")
-	axHist.axhline(y=het_mean+3*het_std, color="yellow", linestyle="--", label="Heterozygosity Rate: Mean+3*STD")
-	axHist.axhline(y=het_mean-3*het_std, color="orange", linestyle="--", label="Heterozygosity Rate: Mean-3*STD")
+	axHist.axhline(y=het_mean+4*het_std, color="yellow", linestyle="--", label="Heterozygosity Rate: Mean+4*STD")
+	axHist.axhline(y=het_mean-4*het_std, color="orange", linestyle="--", label="Heterozygosity Rate: Mean-4*STD")
 	axHist.axvline(x=0.1, color="red", linestyle="--", label="Missing Rate: 0.1")
 	axHist.legend()
 	# sub plots
